@@ -1,0 +1,18 @@
+{
+    "version": "1.0.0",
+    "summary": "Experimental library for parsing MIDI files",
+    "repository": "https://github.com/newlandsvalley/elm-abc-parser.git",
+    "license": "BSD3",
+    "source-directories": [
+        "src"
+    ],
+    "exposed-modules": [
+        "AbcTuneParser"
+    ],
+    "native-modules": false,   
+    "dependencies": {
+        "elm-lang/core": "3.0.0 <= v < 4.0.0",
+        "Bogdanp/elm-combine": "2.0.0 <= v < 3.0.0"
+    },
+    "elm-version": "0.16.0 <= v < 0.17.0"
+}
