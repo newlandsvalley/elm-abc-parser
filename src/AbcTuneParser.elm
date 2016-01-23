@@ -32,11 +32,31 @@ import Combine.Num exposing (..)
 import String exposing (fromList, toList)
 import Debug exposing (..)
 import Maybe exposing (withDefault)
+import Result exposing (Result)
 
 {-| an ABC Tune Body -}
-type alias TuneBody = String
+type alias TuneBody = List MusicLine
 
-{-| a line of Music -}
+type alias MusicLine = List Music
+
+type Music 
+  = Barline Bar
+  | Note String Int
+  | Tuplet Int
+  | Tie
+  | Spacer Int
+  | Stuff String
+
+
+type Bar
+    = SingleBar                     -- |
+    | DoubleBar Bool Bool           -- thick? thick?  ||, |], [|
+    | RepeatStart                   -- |:
+    | RepeatEnd                     -- :|
+    | StartAndEnd                   -- ::
+    | Iteration Int                 -- |1  or |2
+
+{-| a line of Music 
 type Music
     = Chord String                   --  Chord Chord 
     | Barline String                 --  Barline Barline  
@@ -49,6 +69,7 @@ type Music
     | Annotate String Music          --  Annotate Annotation Music
     | ChordSymbol String Music       --  ChordSymbol ChordSymbol Music
     | Sequence (List Music)          --  beam? music
+-}
 
 type alias Fraction = (Int, Int)
 
@@ -127,15 +148,52 @@ type alias TuneHeaders = List Header
 {-| AbcTune -}
 type alias AbcTune = (TuneHeaders, TuneBody)
 
-body : Parser TuneBody
-body = String.fromList <$> rest
+-- BODY
+body : Parser TuneBody    
+body = many1 (musicLine <* endLine) <* rest
 
+musicLine : Parser (List Music)
+musicLine = many musicItem
 
-strToEol : Parser String
-strToEol = String.fromList <$> many (noneOf [ '\r', '\n' ]) <* eol
+musicItem : Parser Music
+musicItem = 
+    log "music item" <$>
+    (
+    choice 
+       [ 
+         barline
+       , anote
+       , tuplet
+       , tie
+       , bodyStuff
+       , spacer
+       ]       
+    )
 
-intToEol : Parser Int
-intToEol = int <* eol
+barline : Parser Music
+barline = Barline <$> (choice [complexBar, simpleBar])
+
+complexBar : Parser Bar
+complexBar = buildBar <$> (log "complex bar" <$> (choice
+               [
+                 string "||"
+               , string "[|"  
+               , string "|]"  
+               , string "|:" 
+               , string ":|" 
+               , string "::" 
+               , char '|' *> regex "[0-9]"
+               ]
+              ))
+
+simpleBar : Parser Bar
+simpleBar = succeed SingleBar <* char '|'
+             <?> "barline"
+
+tie : Parser Music
+tie = succeed Tie <* char '-'
+
+-- HEADERS
 
 -- Header attributes
 fraction : Parser Fraction
@@ -338,8 +396,20 @@ headers : Parser TuneHeaders
 headers = many1 header <?> "headers"
 
 -- low level parsers
+-- possible whitespace
 whiteSpace : Parser String
-whiteSpace = regex "[ \t]*"
+whiteSpace = String.fromList <$> (many <| choice [space, tab])
+
+-- at least one (intended) space somewhere inside the music body
+spacer : Parser Music
+spacer = Spacer <$> ( List.length <$> (many1 space))
+
+endLine : Parser String
+endLine = regex "(\r\n|\n)" 
+            <?> "end line"
+{- endLine = String.fromChar <$> choice [newline, crlf]
+            <?> "end line"
+-}
 
 headerCode : Char -> Parser Char
 headerCode c = char c <* char ':' <* whiteSpace
@@ -348,6 +418,22 @@ quotedString : Parser String
 quotedString = 
    whiteSpace *> string "\"" *> regex "(\\\\\"|[^\"\n])*" <* string "\"" <* whiteSpace
       <?> "quoted string"
+
+strToEol : Parser String
+strToEol = String.fromList <$> many (noneOf [ '\r', '\n' ]) <* eol
+
+intToEol : Parser Int
+intToEol = int <* eol
+
+-- temporary parsers - completely unfinished stuff
+bodyStuff : Parser Music
+bodyStuff = log "body stuff" <$> ( Stuff <$> (String.concat <$> (many1 <| regex "[^\r\n\t\\- A-Ga-g0-9]")))
+
+anote : Parser Music
+anote = buildNote <$> (regex "[A-Ga-g]") <*> maybe Combine.Num.digit
+
+tuplet : Parser Music
+tuplet = Tuplet <$> (char '(' *> Combine.Num.digit)
 
 
 -- builders
@@ -368,7 +454,32 @@ buildTempoSignature ms1 fs c i ms2 =
     , bpm = i
     , marking = ms
     }
-               
+          
+{- Build a Bar from an already parsed String.
+   all guaranteed to be 2 char strings because of the parse pattern except the Iteration  
+   which is a single digit string -}
+buildBar : String -> Bar
+buildBar s = case s of
+   "||" -> DoubleBar False False
+   "[|" -> DoubleBar True False
+   "|]" -> DoubleBar False True
+   "|:" -> RepeatStart
+   ":|" -> RepeatEnd
+   "::" -> StartAndEnd
+   n -> 
+     let 
+       res = String.toInt n
+     in case res of
+        Ok i -> Iteration i
+        _ -> SingleBar   -- (can't happen)
+
+buildNote : String -> Maybe Int -> Music
+buildNote s ml = 
+   let 
+     l = withDefault 1 ml
+   in 
+     Note s l
+
                 
 {- just for debug purposes - consume the rest of the input -}
 rest : Parser (List Char)
