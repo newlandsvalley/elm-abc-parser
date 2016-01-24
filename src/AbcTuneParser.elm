@@ -31,6 +31,7 @@ import Combine.Infix exposing (..)
 import Combine.Num exposing (..)
 import Ratio exposing (Rational, over, fromInt)
 import String exposing (fromList, toList)
+import Char exposing (fromCode, toCode, isUpper)
 import Debug exposing (..)
 import Maybe exposing (withDefault)
 import Result exposing (Result)
@@ -40,11 +41,19 @@ type alias TuneBody = List MusicLine
 
 type alias MusicLine = List Music
 
+type alias AbcNote =
+  {  pitchClass : Char
+  ,  accidental : Maybe Accidental
+  ,  octave : Int
+  ,  duration : NoteDuration
+}
+
 type Music 
   = Barline Bar
-  | Note String (Maybe Accidental) Int Int
+  | Note AbcNote
   | Tuplet Int
   | Tie
+  | BrokenRhythmTie Bool
   | Spacer Int
   | Stuff String
 
@@ -166,6 +175,7 @@ musicItem =
        , anote
        , tuplet
        , tie
+       , brokenRhythmTie
        -- , bodyStuff
        , spacer
        ]       
@@ -194,22 +204,48 @@ simpleBar = succeed SingleBar <* char '|'
 tie : Parser Music
 tie = succeed Tie <* char '-'
 
+brokenRhythmTie : Parser Music
+brokenRhythmTie  = BrokenRhythmTie <$> ((\x -> x == "<") <$> regex "[<|>]")
+
+{-
+brokenRhythmPair : Parser Music
+brokenRhythmPair = anote <*> brokenRhythmTie <*> anote
+-}
+
+
 -- HEADERS
 
--- Header attributes
+-- general attributes
+-- e.g 3/4
 rational : Parser Rational
-rational = buildRational <$> int <*> char '/' <*> int <* whiteSpace
+rational = buildRational <$> int <*> char '/' <*> int
+
+-- e.g. /4 (as found in note durations)
+curtailedRational : Parser Rational
+curtailedRational = buildRational 1 <$> char '/' <*> int
+
+{- e.g. / or // or /// (as found in note durations)
+   which translates to 1/2, 1/4, 1/8 etc
+-}
+slashesRational : Parser Rational
+slashesRational = 
+   buildRationalFromExponential <$> (List.length <$> (many1 <| char '/'))
+
+-- Header attributes
+-- rational with trailing optional spaces
+headerRational : Parser Rational
+headerRational = rational <* whiteSpace
 
 meterSignature : Parser MeterSignature
-meterSignature = rational
+meterSignature = rational <* whiteSpace
 
 noteDuration : Parser NoteDuration
-noteDuration = rational
+noteDuration = rational <* whiteSpace
 
 -- perhaps we need many1 rather than many here for conformance to the 2.1 spec
 -- leaving out the note duration is common (and defaults to 1/4) so is more forgiving
 tempoSignature : Parser TempoSignature
-tempoSignature = buildTempoSignature <$> maybe quotedString <*> many rational <*> char '=' <*> int <*> maybe quotedString
+tempoSignature = buildTempoSignature <$> maybe quotedString <*> many headerRational <*> char '=' <*> int <*> maybe quotedString
 
 -- accidental in a key signature (these use a different representation from accidentals in the tune body
 sharpOrFlat : Parser Accidental
@@ -434,7 +470,19 @@ bodyStuff : Parser Music
 bodyStuff = log "body stuff" <$> ( Stuff <$> (String.concat <$> (many1 <| regex "[^\r\n\t\\-\\^_,' A-Ga-g0-9=]")))
 
 anote : Parser Music
-anote = buildNote <$> (regex "[A-Ga-g]") <*> maybeAccidental <*> moveOctave <*> maybe Combine.Num.digit
+-- anote = buildNote <$> (regex "[A-Ga-g]") <*> maybeAccidental <*> moveOctave <*> maybe Combine.Num.digit
+anote = buildNote <$> keyClass <*> maybeAccidental <*> moveOctave <*> maybe noteDur
+
+{- an upper or lower case note ([A-Ga-g]) 
+   done this way rather than a regex to get a more tractable Char result and not a String
+-}
+keyClass : Parser Char
+keyClass =
+  let
+    f a = (toCode a >= 65 && toCode a <= 71)
+          || (toCode a >= 97 && toCode a <= 103)
+  in 
+    satisfy f 
 
 -- maybe an accidental defining a note's pitch
 maybeAccidental : Parser (Maybe String)
@@ -448,7 +496,7 @@ maybeAccidental =
         , string "="
         ]
 
--- maybe an octave - altering a note's pitch (up or down) by a succession of octaves
+-- move an octave - altering a note's pitch (up or down) by a succession of octaves
 moveOctave : Parser Int
 moveOctave = 
    withDefault 0 <$>
@@ -475,8 +523,21 @@ octave b =
    in
      log "octave" <$> (fn <$> (List.length <$> many1 (char c)))
 
+{- the duration of a note in the body -}
+noteDur : Parser Rational
+noteDur = 
+   choice 
+    [ integralAsRational
+    , rational
+    , curtailedRational
+    , slashesRational
+    ]
 
-   
+
+integralAsRational : Parser Rational
+integralAsRational =
+   Ratio.fromInt <$> Combine.Num.digit
+
 
 tuplet : Parser Music
 tuplet = Tuplet <$> (char '(' *> Combine.Num.digit)
@@ -486,7 +547,12 @@ tuplet = Tuplet <$> (char '(' *> Combine.Num.digit)
 
 -- build a rationalal quantity - "x/y" -> Rational x y
 buildRational : Int -> Char -> Int -> MeterSignature
-buildRational x c y = x `over` y
+buildRational x slash y = x `over` y
+
+{- used in counting slashes logarithmically -}
+buildRationalFromExponential : Int -> Rational
+buildRationalFromExponential i =
+  Ratio.over 1 (2 ^ i)
 
 -- build a tempo signature
 buildTempoSignature : Maybe String -> List Rational -> Char -> Int -> Maybe String -> TempoSignature
@@ -519,13 +585,24 @@ buildBar s = case s of
         Ok i -> Iteration i
         _ -> SingleBar   -- (can't happen)
 
-buildNote : String -> Maybe String -> Int -> Maybe Int -> Music
-buildNote s macc octave ml = 
+buildNote : Char -> Maybe String -> Int -> Maybe Rational -> Music
+buildNote c macc octave ml = 
    let 
-     l = withDefault 1 ml
+     l = withDefault (Ratio.fromInt 1) ml
      a = buildAccidental macc
+     spn = scientificPitchNotation c octave
    in 
-     Note s a octave l
+     Note { pitchClass = c, accidental = a, octave = spn, duration = l }
+
+{- investigate a note/octave pair and return the octave
+   in scientific pitch notation (middle C = 4)
+-}
+scientificPitchNotation : Char -> Int -> Int
+scientificPitchNotation keyClass oct =
+   if isUpper keyClass then  -- key class inhabits octave of middle C, oct <= 0
+      4 + oct
+   else                      -- key class inhabits octave above middle C, oct >= 0
+      5 + oct
 
 buildAccidental : Maybe String -> Maybe Accidental
 buildAccidental ms = case ms of

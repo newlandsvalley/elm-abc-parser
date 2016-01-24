@@ -110,6 +110,7 @@ view : Signal.Address Action -> Model -> Html
 view address model =
   div []
     [ button [ onClick address (Load "abc/lillasystern.abc") ] [ text "lillasystern" ]
+    , button [ onClick address (Load "abc/PolskaRattvik.abc") ] [ text "Rattvik polska" ]
     , div [  ] [ text ("parse result: " ++ (viewParseResult model.transcription)) ]
     ]
 
