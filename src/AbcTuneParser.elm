@@ -29,6 +29,7 @@ import Combine exposing (..)
 import Combine.Char exposing (..)
 import Combine.Infix exposing (..)
 import Combine.Num exposing (..)
+import Ratio exposing (Rational, over, fromInt)
 import String exposing (fromList, toList)
 import Debug exposing (..)
 import Maybe exposing (withDefault)
@@ -41,7 +42,7 @@ type alias MusicLine = List Music
 
 type Music 
   = Barline Bar
-  | Note String Int
+  | Note String (Maybe Accidental) Int Int
   | Tuplet Int
   | Tie
   | Spacer Int
@@ -71,8 +72,6 @@ type Music
     | Sequence (List Music)          --  beam? music
 -}
 
-type alias Fraction = (Int, Int)
-
 {-| a Mode -}
 type Mode = 
     Major
@@ -90,6 +89,8 @@ type Mode =
 type Accidental = 
     Sharp
   | Flat
+  | DoubleSharp
+  | DoubleFlat
   | Natural
 
 
@@ -97,20 +98,20 @@ type Accidental =
 type alias KeySignature = (String, Maybe Accidental, Maybe Mode) 
 
 {-| a Meter Signature - e.g. 3/4 -}
-type alias MeterSignature = Fraction
+type alias MeterSignature = Rational
 
 {-| a Tempo Signature - e.g. 1/4=120
     or 1/4 3/8 1/4 3/8=40   (up to 4 note lengths allowed)
     or "Allegro" 1/4=120
     or 3/8=50 "Slowly" -}
 type alias TempoSignature = 
-  { noteLengths: List Fraction
+  { noteLengths: List Rational
   , bpm : Int
   , marking : Maybe String
   }
 
 {-| a Note Duration - e.g. 1/4 -}
-type alias NoteDuration = Fraction
+type alias NoteDuration = Rational
 
 {-| an ABC Tune Header -}
 type Header =
@@ -165,7 +166,7 @@ musicItem =
        , anote
        , tuplet
        , tie
-       , bodyStuff
+       -- , bodyStuff
        , spacer
        ]       
     )
@@ -196,24 +197,27 @@ tie = succeed Tie <* char '-'
 -- HEADERS
 
 -- Header attributes
-fraction : Parser Fraction
-fraction = buildFraction <$> int <*> char '/' <*> int <* whiteSpace
+rational : Parser Rational
+rational = buildRational <$> int <*> char '/' <*> int <* whiteSpace
 
 meterSignature : Parser MeterSignature
-meterSignature = fraction
+meterSignature = rational
 
 noteDuration : Parser NoteDuration
-noteDuration = fraction
+noteDuration = rational
 
 -- perhaps we need many1 rather than many here for conformance to the 2.1 spec
 -- leaving out the note duration is common (and defaults to 1/4) so is more forgiving
 tempoSignature : Parser TempoSignature
-tempoSignature = buildTempoSignature <$> maybe quotedString <*> many fraction <*> char '=' <*> int <*> maybe quotedString
+tempoSignature = buildTempoSignature <$> maybe quotedString <*> many rational <*> char '=' <*> int <*> maybe quotedString
 
+-- accidental in a key signature (these use a different representation from accidentals in the tune body
 sharpOrFlat : Parser Accidental
 sharpOrFlat = 
    map  (\x -> if x == '#' then Sharp else Flat)          
            (choice [ char '#', char 'b'])
+
+
 
 keyName : Parser String
 keyName = regex "[A-G]"
@@ -427,10 +431,52 @@ intToEol = int <* eol
 
 -- temporary parsers - completely unfinished stuff
 bodyStuff : Parser Music
-bodyStuff = log "body stuff" <$> ( Stuff <$> (String.concat <$> (many1 <| regex "[^\r\n\t\\- A-Ga-g0-9]")))
+bodyStuff = log "body stuff" <$> ( Stuff <$> (String.concat <$> (many1 <| regex "[^\r\n\t\\-\\^_,' A-Ga-g0-9=]")))
 
 anote : Parser Music
-anote = buildNote <$> (regex "[A-Ga-g]") <*> maybe Combine.Num.digit
+anote = buildNote <$> (regex "[A-Ga-g]") <*> maybeAccidental <*> moveOctave <*> maybe Combine.Num.digit
+
+-- maybe an accidental defining a note's pitch
+maybeAccidental : Parser (Maybe String)
+maybeAccidental = 
+  maybe <|
+      choice
+        [ string "^^"
+        , string "__"
+        , string "^"
+        , string "_"
+        , string "="
+        ]
+
+-- maybe an octave - altering a note's pitch (up or down) by a succession of octaves
+moveOctave : Parser Int
+moveOctave = 
+   withDefault 0 <$>
+     maybe 
+       (choice
+          [ octave True  -- up
+          , octave False  -- down
+          ]
+        )
+{- True means octave up (denoted by an apostrophe
+   False means octave down (denoted by a comma)
+   return a positive or negative number according to the number of markers parsed
+-}
+octave : Bool -> Parser Int
+octave b = 
+   let 
+     c =
+       case b of 
+         True -> '\''  -- up
+         _ -> ','      -- down
+     fn l = case b of  -- negate answers for low octaves
+          True -> l
+          _ -> 0 - l
+   in
+     log "octave" <$> (fn <$> (List.length <$> many1 (char c)))
+
+
+   
 
 tuplet : Parser Music
 tuplet = Tuplet <$> (char '(' *> Combine.Num.digit)
@@ -438,12 +484,12 @@ tuplet = Tuplet <$> (char '(' *> Combine.Num.digit)
 
 -- builders
 
--- build a fractional quantity - "x/y" -> (x,y)
-buildFraction : Int -> Char -> Int -> MeterSignature
-buildFraction x c y = (x,y)
+-- build a rationalal quantity - "x/y" -> Rational x y
+buildRational : Int -> Char -> Int -> MeterSignature
+buildRational x c y = x `over` y
 
 -- build a tempo signature
-buildTempoSignature : Maybe String -> List Fraction -> Char -> Int -> Maybe String -> TempoSignature
+buildTempoSignature : Maybe String -> List Rational -> Char -> Int -> Maybe String -> TempoSignature
 buildTempoSignature ms1 fs c i ms2 =
    let ms = 
       case ms1 of
@@ -473,12 +519,23 @@ buildBar s = case s of
         Ok i -> Iteration i
         _ -> SingleBar   -- (can't happen)
 
-buildNote : String -> Maybe Int -> Music
-buildNote s ml = 
+buildNote : String -> Maybe String -> Int -> Maybe Int -> Music
+buildNote s macc octave ml = 
    let 
      l = withDefault 1 ml
+     a = buildAccidental macc
    in 
-     Note s l
+     Note s a octave l
+
+buildAccidental : Maybe String -> Maybe Accidental
+buildAccidental ms = case ms of
+   Just "^^" -> Just DoubleSharp
+   Just "__" -> Just DoubleFlat
+   Just "^"  -> Just Sharp
+   Just "_"  -> Just Flat
+   Just "="  -> Just Natural
+   _ -> Nothing 
+
 
                 
 {- just for debug purposes - consume the rest of the input -}

@@ -13,13 +13,14 @@ To parse an ABC string you can use:
 Dependencies
 ------------
 
-*  Bogdanp/elm-combine  2.0.0
+*  Bogdanp/elm-combine 2.0.0
+*  imeckler/ration 2.0.0
 *  elm-lang/core 3.0.0
 
 Limitations
 -----------
 
-So far, only ABC Headers have been implemented,
+ABC Headers have been implemented.  In the tune body, barlines and ties have been implemented, notes and tuplets are partly finished. Beams, rests, slurs, chords, annotations and decorations have not been started.
  
 
 
