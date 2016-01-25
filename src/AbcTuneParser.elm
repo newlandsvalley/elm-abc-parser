@@ -56,6 +56,8 @@ type Music
   | Rest Int
   | Tuplet Int
   | Tie
+  | ChordSymbol String
+  | Chord (List AbcNote)
   | Spacer Int
   | Stuff String
 
@@ -169,17 +171,24 @@ musicItem =
     (
     choice 
        [ 
-         barline
-       , brokenRhythmPair    -- must place before note because of potential ambiguity
+         chord               -- I think we need it placed before barline because of ambiguity of '['
+       , barline
+       , brokenRhythmPair    -- must place before note because of potential ambiguity of AbcNote
        , note
        , rest
        , tuplet
        , tie
+       , chordSymbol
        -- , bodyStuff
        , spacer
        ]       
     )
 
+{- a bar line (plus optional repeat iteration marker)
+   see comments in 4.8 Repeat/bar symbols:
+   Abc parsers should be quite liberal in recognizing bar lines. In the wild, bar lines may have 
+   any shape, using a sequence of | (thin bar line), [ or ] (thick bar line), and : (dots), e.g. |[| or [|::: 
+-}
 barline : Parser Music
 barline = buildBarline <$> barSeparator <*> maybe Combine.Num.digit
              <?> "barline"
@@ -195,8 +204,7 @@ barSeparator =
         , char ']'
         , char ':'
         ]
-    )
-             
+    )             
 
 tie : Parser Music
 tie = succeed Tie <* char '-'
@@ -213,6 +221,13 @@ rest : Parser Music
 rest = Rest <$> (withDefault 1 <$> (regex "[XxZz]" *> maybe int))
              <?> "rest"
 
+{- a free - format chord symbol - see 4.18 Chord symbols -}
+chordSymbol : Parser Music
+chordSymbol = ChordSymbol <$> quotedString
+
+chord : Parser Music
+chord = Chord <$> 
+         between (char '[') (char ']') (many1 abcNote)
 
 -- HEADERS
 
@@ -245,10 +260,18 @@ meterSignature = rational <* whiteSpace
 noteDuration : Parser NoteDuration
 noteDuration = rational <* whiteSpace
 
--- perhaps we need many1 rather than many here for conformance to the 2.1 spec
--- leaving out the note duration is common (and defaults to 1/4) so is more forgiving
+{- This is an area where we've relaxed the 2.1 spec
+   1) we use many rather than many1 note length designators
+   2) equals is now optional
+   This means we can parse all of
+        1/4 3/8 1/4 3/8=40
+        "Allegro" 1/4=120
+        3/8=50 "Slowly"
+   but also the outdated (but prevalent in the wild
+   120  (which means 1/4=120)
+-}
 tempoSignature : Parser TempoSignature
-tempoSignature = buildTempoSignature <$> maybe quotedString <*> many headerRational <*> char '=' <*> int <*> maybe quotedString
+tempoSignature = buildTempoSignature <$> maybe quotedString <*> many headerRational <*> maybe (char '=') <*> int <*> maybe quotedString
 
 -- accidental in a key signature (these use a different representation from accidentals in the tune body
 sharpOrFlat : Parser Accidental
@@ -451,12 +474,20 @@ whiteSpace = String.fromList <$> (many <| choice [space, tab])
 spacer : Parser Music
 spacer = Spacer <$> ( List.length <$> (many1 space))
 
-endLine : Parser String
-endLine = regex "(\r\n|\n)" 
-            <?> "end line"
-{- endLine = String.fromChar <$> choice [newline, crlf]
-            <?> "end line"
+{- this is an area where the spec is uncertain.  See 6.1.1 Typesetting line-breaks
+   The forward slash is used to indicate 'continuation of input lines' often because
+   users may need to avoid long lines if, for example, they would otherwise extend
+   beyond the limit of an old email system.  All very out of date, but nevertheless
+   still prevalent in the wild.  We take the view that we must do our best to recognise 
+   them and then throw them away (along with any other later stuff in the line)
 -}
+continuation : Parser Char
+continuation = char '\\' <* regex "[^\r\n]*"
+
+endLine : Parser String
+endLine = maybe continuation *> regex "(\r\n|\n)" 
+            <?> "end line"
+
 
 headerCode : Char -> Parser Char
 headerCode c = char c <* char ':' <* whiteSpace
@@ -481,7 +512,7 @@ note = Note <$> abcNote
 
 abcNote : Parser AbcNote
 -- anote = buildNote <$> (regex "[A-Ga-g]") <*> maybeAccidental <*> moveOctave <*> maybe Combine.Num.digit
-abcNote = log "abcNote" <$> (buildNote <$> keyClass <*> maybeAccidental <*> moveOctave <*> maybe noteDur)
+abcNote = buildNote <$> keyClass <*> maybeAccidental <*> moveOctave <*> maybe noteDur
 
 {- an upper or lower case note ([A-Ga-g]) 
    done this way rather than a regex to get a more tractable Char result and not a String
@@ -576,7 +607,7 @@ buildRationalFromExponential i =
   Ratio.over 1 (2 ^ i)
 
 -- build a tempo signature
-buildTempoSignature : Maybe String -> List Rational -> Char -> Int -> Maybe String -> TempoSignature
+buildTempoSignature : Maybe String -> List Rational -> Maybe Char -> Int -> Maybe String -> TempoSignature
 buildTempoSignature ms1 fs c i ms2 =
    let ms = 
       case ms1 of

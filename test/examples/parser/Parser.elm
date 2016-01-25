@@ -112,6 +112,8 @@ view address model =
     [ button [ onClick address (Load "abc/lillasystern.abc") ] [ text "lillasystern" ]
     , button [ onClick address (Load "abc/PolskaRattvik.abc") ] [ text "Rattvik polska" ]
     , button [ onClick address (Load "abc/LasseiLyby.abc") ] [ text "Lasse i Lyby" ]
+    , button [ onClick address (Load "abc/ChordSymbols.abc") ] [ text "cord symbols sample" ]
+    , button [ onClick address (Load "abc/Chords.abc") ] [ text "cord sample" ]
     , div [  ] [ text ("parse result: " ++ (viewParseResult model.transcription)) ]
     ]
 

@@ -20,7 +20,7 @@ Dependencies
 Limitations
 -----------
 
-ABC Headers have been implemented.  In the tune body, bar lines, notes and ties have been implemented, rests and tuplets are partly finished. Slurs, chords, articulations, annotations and decorations have not been started.
+ABC Headers have been implemented.  In the tune body, bar lines, notes ties, chords and chord symbols have been implemented, rests and tuplets are partly finished. Slurs,  articulations, annotations and decorations have not been started.
  
 
 
