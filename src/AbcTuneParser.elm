@@ -36,8 +36,20 @@ import Debug exposing (..)
 import Maybe exposing (withDefault)
 import Result exposing (Result)
 
+{-| AbcTune -}
+type alias AbcTune = (TuneHeaders, TuneBody)
+
+{-| a List of ABC Tune Header -}
+type alias TuneHeaders = List Header
+
 {-| an ABC Tune Body -}
-type alias TuneBody = List MusicLine
+-- type alias TuneBody = List MusicLine
+
+type alias TuneBody = List BodyPart
+
+type BodyPart
+  =  Score MusicLine
+  |  BodyInfo Header
 
 type alias MusicLine = List Music
 
@@ -59,7 +71,6 @@ type Music
   | ChordSymbol String
   | Chord (List AbcNote)
   | Spacer Int
-  | Stuff String
 
 type alias Bar = 
   { separator : String
@@ -69,7 +80,7 @@ type alias Bar =
 {-| a line of Music 
 type Music
     = Chord String                   --  Chord Chord 
-    | Barline Bar                --  Barline Barline  
+    | Barline Bar                    --  Barline Barline  
     | Tie Music
     | Slur Music
     | Beam Music
@@ -152,15 +163,19 @@ type Header =
     | ReferenceNumber Int
     | Transcription String
 
-{-| a List of ABC Tune Header -}
-type alias TuneHeaders = List Header
-
-{-| AbcTune -}
-type alias AbcTune = (TuneHeaders, TuneBody)
+-- top level parsers
+abc : Parser AbcTune
+abc = (,) <$> headers <*> many1 body <* restOfInput
 
 -- BODY
-body : Parser TuneBody    
-body = many1 (musicLine <* endLine) <* restOfInput
+body : Parser BodyPart
+body = choice 
+         [ notesBody
+         , tuneBodyHeader
+         ]
+
+notesBody : Parser BodyPart 
+notesBody = Score <$> musicLine <* endLine 
 
 musicLine : Parser (List Music)
 musicLine = many musicItem
@@ -229,7 +244,6 @@ chord : Parser Music
 chord = Chord <$> 
          between (char '[') (char ']') (many1 abcNote)
 
--- HEADERS
 
 -- general attributes
 -- e.g 3/4
@@ -249,7 +263,9 @@ slashesRational : Parser Rational
 slashesRational = 
    buildRationalFromExponential <$> (List.length <$> (many1 <| char '/'))
 
--- Header attributes
+
+-- HEADER ATTRIBUTES
+
 -- rational with trailing optional spaces
 headerRational : Parser Rational
 headerRational = rational <* whiteSpace
@@ -278,8 +294,6 @@ sharpOrFlat : Parser Accidental
 sharpOrFlat = 
    map  (\x -> if x == '#' then Sharp else Flat)          
            (choice [ char '#', char 'b'])
-
-
 
 keyName : Parser String
 keyName = regex "[A-G]"
@@ -353,78 +367,85 @@ history : Parser Header
 history = History <$> ((headerCode 'H') *> strToEol)
 
 instruction : Parser Header
-instruction = Instruction <$> ((headerCode 'I') *> strToEol)
+instruction = Instruction <$> ((headerCode 'I') *> inlineInfo )
 
 key : Parser Header
-key = Key <$> ((headerCode 'K') *> keySignature <* eol)
+key = Key <$> ((headerCode 'K') *> keySignature )
 
 unitNoteLength : Parser Header
-unitNoteLength = UnitNoteLength <$> ((headerCode 'L') *> noteDuration <* eol)
+unitNoteLength = UnitNoteLength <$> ((headerCode 'L') *> noteDuration )
 
 meter : Parser Header
-meter = Meter <$> ((headerCode 'M') *> meterSignature <* eol )
+meter = Meter <$> ((headerCode 'M') *> meterSignature  )
 
 macro : Parser Header
-macro = Macro <$> ((headerCode 'm') *> strToEol)
+macro = Macro <$> ((headerCode 'm') *> inlineInfo)
 
 notes : Parser Header
-notes = Notes <$> ((headerCode 'N') *> strToEol)
+notes = Notes <$> ((headerCode 'N') *> inlineInfo)
 
 origin : Parser Header
 origin = Origin <$> ((headerCode 'O') *> strToEol)
 
 parts : Parser Header
-parts = Parts <$> ((headerCode 'P') *> strToEol)
+parts = Parts <$> ((headerCode 'P') *> inlineInfo)
 
 tempo : Parser Header
-tempo = Tempo <$> ((headerCode 'Q') *> tempoSignature <* eol)
+tempo = Tempo <$> ((headerCode 'Q') *> tempoSignature)
 
 rhythm : Parser Header
-rhythm = Rhythm <$> ((headerCode 'R') *> strToEol)
+rhythm = Rhythm <$> ((headerCode 'R') *> inlineInfo)
 
 remark : Parser Header
-remark = Remark <$> ((headerCode 'r') *> strToEol)
+remark = Remark <$> ((headerCode 'r') *> inlineInfo)
 
 source : Parser Header
 source = Source <$> ((headerCode 'S') *> strToEol)
 
 symbolLine : Parser Header
-symbolLine = SymbolLine <$> ((headerCode 's') *> strToEol)
+symbolLine = SymbolLine <$> ((headerCode 's') *> inlineInfo)
 
 title : Parser Header
-title = Title <$> ((headerCode 'T') *> strToEol)
+title = Title <$> ((headerCode 'T') *> inlineInfo)
 
 userDefined : Parser Header
-userDefined = UserDefined <$> ((headerCode 'U') *> strToEol)
+userDefined = UserDefined <$> ((headerCode 'U') *> inlineInfo)
 
 voice : Parser Header
-voice = Voice <$> ((headerCode 'V') *> strToEol)
-
+voice = Voice <$> ((headerCode 'V') *> inlineInfo)
 
 wordsAfter : Parser Header
-wordsAfter  = WordsAfter  <$> ((headerCode 'W') *> strToEol)
+wordsAfter  = WordsAfter  <$> ((headerCode 'W') *> inlineInfo)
 
 wordsAligned : Parser Header
-wordsAligned  = WordsAligned  <$> ((headerCode 'w') *> strToEol)
+wordsAligned  = WordsAligned  <$> ((headerCode 'w') *> inlineInfo)
 
 referenceNumber : Parser Header
-referenceNumber = ReferenceNumber <$> ((headerCode 'X') *> intToEol)
+referenceNumber = ReferenceNumber <$> ((headerCode 'X') *> int)
 
 transcription : Parser Header
 transcription = Transcription <$> ((headerCode 'Z') *> strToEol)
 
-
+{- a header is an information field up to and including the end of line marker -}
 header : Parser Header
-header = 
+header = informationField <* eol
+
+{- ditto for headers that may appear in the tune body -}
+tuneBodyHeader : Parser BodyPart
+tuneBodyHeader  = BodyInfo <$> tuneBodyInfo <* eol
+
+{- whereas information fields can be used inline -}
+informationField : Parser Header
+informationField = 
   log "header" <$>
     (
-    choice [ anywhereHeader
-           , tuneHeader ]
+    choice [ anywhereInfo
+           , tuneInfo ]
              <?> "header"
     )
            
-tuneHeader : Parser Header
-tuneHeader = 
+tuneInfo : Parser Header
+tuneInfo = 
   choice [ area 
          , book
          , composer
@@ -436,10 +457,10 @@ tuneHeader =
          , source
          , referenceNumber
          , transcription ]
-           <?> "tune header"
+           <?> "tune info"
 
-anywhereHeader : Parser Header
-anywhereHeader = 
+anywhereInfo : Parser Header
+anywhereInfo = 
   choice [ instruction 
          , key 
          , unitNoteLength 
@@ -454,13 +475,19 @@ anywhereHeader =
          , userDefined
          , voice
          , wordsAfter ]
-            <?> "anywhere header"
+            <?> "anywhere info"
 
-tuneBodyHeader : Parser Header
-tuneBodyHeader = 
+tuneBodyOnlyInfo : Parser Header
+tuneBodyOnlyInfo = 
   choice [ symbolLine 
          , wordsAligned ] 
-           <?> "tune body header"
+           <?> "tune body only infp"
+
+tuneBodyInfo : Parser Header
+tuneBodyInfo = 
+  choice [ tuneBodyOnlyInfo
+         , anywhereInfo ] 
+           <?> "tune body info"
 
 headers : Parser TuneHeaders
 headers = many1 header <?> "headers"
@@ -497,16 +524,19 @@ quotedString =
    whiteSpace *> string "\"" *> regex "(\\\\\"|[^\"\n])*" <* string "\"" <* whiteSpace
       <?> "quoted string"
 
+{- parse a remaining string up to but not including the end of line -}
 strToEol : Parser String
-strToEol = String.fromList <$> many (noneOf [ '\r', '\n' ]) <* eol
+-- strToEol = String.fromList <$> many (noneOf [ '\r', '\n' ]) 
+strToEol = regex "[^\r\n]*"
 
-intToEol : Parser Int
-intToEol = int <* eol
+{- parse an information item String - note that, because these can be used inline
+   (bracketed by '[' and ']') it behoves us not to use the framing characters in the string
+   not that the spec has anything to say about it as far as I can see
+-}
+inlineInfo : Parser String
+inlineInfo = regex "[^\r\n\\[\\]]*"
 
 -- temporary parsers - completely unfinished stuff
-bodyStuff : Parser Music
-bodyStuff = log "body stuff" <$> ( Stuff <$> (String.concat <$> (many1 <| regex "[^\r\n\t\\-\\^_,' A-Ga-g0-9=]")))
-
 note : Parser Music
 note = Note <$> abcNote
 
@@ -657,9 +687,7 @@ buildAccidental ms = case ms of
 restOfInput : Parser (List Char)
 restOfInput = many anyChar
 
--- top level parsers
-abc : Parser AbcTune
-abc = (,) <$> headers <*> body 
+
 
           
 -- exported functions
