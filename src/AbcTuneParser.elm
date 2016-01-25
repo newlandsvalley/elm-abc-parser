@@ -59,19 +59,15 @@ type Music
   | Spacer Int
   | Stuff String
 
-
-type Bar
-    = SingleBar                     -- |
-    | DoubleBar Bool Bool           -- thick? thick?  ||, |], [|
-    | RepeatStart                   -- |:
-    | RepeatEnd                     -- :|
-    | StartAndEnd                   -- ::
-    | Iteration Int                 -- |1  or |2
+type alias Bar = 
+  { separator : String
+  , iteration : Maybe Int
+  }
 
 {-| a line of Music 
 type Music
     = Chord String                   --  Chord Chord 
-    | Barline String                 --  Barline Barline  
+    | Barline Bar                --  Barline Barline  
     | Tie Music
     | Slur Music
     | Beam Music
@@ -185,38 +181,37 @@ musicItem =
     )
 
 barline : Parser Music
-barline = Barline <$> (choice [complexBar, simpleBar])
-
-complexBar : Parser Bar
-complexBar = buildBar <$> (log "complex bar" <$> (choice
-               [
-                 string "||"
-               , string "[|"  
-               , string "|]"  
-               , string "|:" 
-               , string ":|" 
-               , string "::" 
-               , char '|' *> regex "[0-9]"
-               ]
-              ))
-
-simpleBar : Parser Bar
-simpleBar = succeed SingleBar <* char '|'
+barline = buildBarline <$> barSeparator <*> maybe Combine.Num.digit
              <?> "barline"
+
+barSeparator : Parser String
+barSeparator = 
+  String.fromList <$>
+    (
+    many1 <|
+      choice 
+        [ char '|'
+        , char '['
+        , char ']'
+        , char ':'
+        ]
+    )
+             
 
 tie : Parser Music
 tie = succeed Tie <* char '-'
+             <?> "rest"
 
 brokenRhythmTie : Parser Char
 brokenRhythmTie  = choice [ char '<', char '>']
 
 brokenRhythmPair : Parser Music
 brokenRhythmPair = BrokenRhythmPair <$> abcNote <*> brokenRhythmTie <*> abcNote
+             <?> "broken rhythm pair"
 
 rest : Parser Music
 rest = Rest <$> (withDefault 1 <$> (regex "[XxZz]" *> maybe int))
-
-
+             <?> "rest"
 
 
 -- HEADERS
@@ -558,12 +553,14 @@ tuplet : Parser Music
 tuplet = Tuplet <$> (char '(' *> Combine.Num.digit)
 
 -- flip the first 2 arguments of a 3-argument function
+{-
 flip2of3 : (a -> b -> c -> d ) -> (b -> a -> c -> d)  
 flip2of3 f = 
     let 
       g x y z = f y x z
     in
       g
+-}
 
 -- builders
 
@@ -590,25 +587,11 @@ buildTempoSignature ms1 fs c i ms2 =
     , bpm = i
     , marking = ms
     }
-          
-{- Build a Bar from an already parsed String.
-   all guaranteed to be 2 char strings because of the parse pattern except the Iteration  
-   which is a single digit string -}
-buildBar : String -> Bar
-buildBar s = case s of
-   "||" -> DoubleBar False False
-   "[|" -> DoubleBar True False
-   "|]" -> DoubleBar False True
-   "|:" -> RepeatStart
-   ":|" -> RepeatEnd
-   "::" -> StartAndEnd
-   n -> 
-     let 
-       res = String.toInt n
-     in case res of
-        Ok i -> Iteration i
-        _ -> SingleBar   -- (can't happen)
 
+{- build a bar line (i.e. a separation  between bars) -}
+buildBarline : String -> Maybe Int -> Music
+buildBarline s i = Barline { separator = s, iteration = i }
+          
 buildNote : Char -> Maybe String -> Int -> Maybe Rational -> AbcNote
 buildNote c macc octave ml = 
    let 
