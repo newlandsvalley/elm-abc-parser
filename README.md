@@ -14,13 +14,13 @@ Dependencies
 ------------
 
 *  Bogdanp/elm-combine 2.0.0
-*  imeckler/ration 2.0.0
+*  imeckler/ratio 2.0.0
 *  elm-lang/core 3.0.0
 
 Limitations
 -----------
 
-ABC Headers have been implemented.  In the tune body, barlines and ties have been implemented, notes and tuplets are partly finished. Beams, rests, slurs, chords, annotations and decorations have not been started.
+ABC Headers have been implemented.  In the tune body, notes and ties have been implemented, bar lines, rests and tuplets are partly finished. Slurs, chords, articulations, annotations and decorations have not been started.
  
 
 

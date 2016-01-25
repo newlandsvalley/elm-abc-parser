@@ -48,12 +48,14 @@ type alias AbcNote =
   ,  duration : NoteDuration
 }
 
+
 type Music 
   = Barline Bar
   | Note AbcNote
+  | BrokenRhythmPair AbcNote Char AbcNote
+  | Rest Int
   | Tuplet Int
   | Tie
-  | BrokenRhythmTie Bool
   | Spacer Int
   | Stuff String
 
@@ -160,7 +162,7 @@ type alias AbcTune = (TuneHeaders, TuneBody)
 
 -- BODY
 body : Parser TuneBody    
-body = many1 (musicLine <* endLine) <* rest
+body = many1 (musicLine <* endLine) <* restOfInput
 
 musicLine : Parser (List Music)
 musicLine = many musicItem
@@ -172,10 +174,11 @@ musicItem =
     choice 
        [ 
          barline
-       , anote
+       , brokenRhythmPair    -- must place before note because of potential ambiguity
+       , note
+       , rest
        , tuplet
        , tie
-       , brokenRhythmTie
        -- , bodyStuff
        , spacer
        ]       
@@ -204,13 +207,16 @@ simpleBar = succeed SingleBar <* char '|'
 tie : Parser Music
 tie = succeed Tie <* char '-'
 
-brokenRhythmTie : Parser Music
-brokenRhythmTie  = BrokenRhythmTie <$> ((\x -> x == "<") <$> regex "[<|>]")
+brokenRhythmTie : Parser Char
+brokenRhythmTie  = choice [ char '<', char '>']
 
-{-
 brokenRhythmPair : Parser Music
-brokenRhythmPair = anote <*> brokenRhythmTie <*> anote
--}
+brokenRhythmPair = BrokenRhythmPair <$> abcNote <*> brokenRhythmTie <*> abcNote
+
+rest : Parser Music
+rest = Rest <$> (withDefault 1 <$> (regex "[XxZz]" *> maybe int))
+
+
 
 
 -- HEADERS
@@ -218,11 +224,13 @@ brokenRhythmPair = anote <*> brokenRhythmTie <*> anote
 -- general attributes
 -- e.g 3/4
 rational : Parser Rational
-rational = buildRational <$> int <*> char '/' <*> int
+-- rational = buildRational <$> int <*> char '/' <*> int
+rational = Ratio.over <$> int <* char '/' <*> int
 
 -- e.g. /4 (as found in note durations)
 curtailedRational : Parser Rational
-curtailedRational = buildRational 1 <$> char '/' <*> int
+-- curtailedRational = buildRational 1 <$> char '/' <*> int
+curtailedRational = Ratio.over 1 <$> (char '/' *> int)
 
 {- e.g. / or // or /// (as found in note durations)
    which translates to 1/2, 1/4, 1/8 etc
@@ -264,7 +272,6 @@ keySignature = (,,) <$> keyName <*> maybe sharpOrFlat <*> maybe mode
 mode : Parser Mode
 mode = choice 
          [ major
-         , minor
          , ionian
          , dorian
          , phrygian
@@ -272,11 +279,13 @@ mode = choice
          , mixolydian
          , aeolian
          , locrian
+         , minor   -- place last because of potential ambiguity	
          ]
 
 
 minor : Parser Mode
-minor = succeed Minor <* whiteSpace <* regex "(M|m)(I|i)(N|n)([A-Za-z])*"
+-- minor = succeed Minor <* whiteSpace <* regex "(M|m)(I|i)(N|n)([A-Za-z])*"
+minor = succeed Minor <* whiteSpace <* regex "(M|m)([A-Za-z])*"
 
 major : Parser Mode
 major = succeed Major <* whiteSpace <* regex "(M|m)(A|a)(J|j)([A-Za-z])*"
@@ -389,9 +398,12 @@ transcription = Transcription <$> ((headerCode 'Z') *> strToEol)
 
 header : Parser Header
 header = 
-  choice [ anywhereHeader
-         , tuneHeader ]
-           <?> "header"
+  log "header" <$>
+    (
+    choice [ anywhereHeader
+           , tuneHeader ]
+             <?> "header"
+    )
            
 tuneHeader : Parser Header
 tuneHeader = 
@@ -469,9 +481,12 @@ intToEol = int <* eol
 bodyStuff : Parser Music
 bodyStuff = log "body stuff" <$> ( Stuff <$> (String.concat <$> (many1 <| regex "[^\r\n\t\\-\\^_,' A-Ga-g0-9=]")))
 
-anote : Parser Music
+note : Parser Music
+note = Note <$> abcNote
+
+abcNote : Parser AbcNote
 -- anote = buildNote <$> (regex "[A-Ga-g]") <*> maybeAccidental <*> moveOctave <*> maybe Combine.Num.digit
-anote = buildNote <$> keyClass <*> maybeAccidental <*> moveOctave <*> maybe noteDur
+abcNote = log "abcNote" <$> (buildNote <$> keyClass <*> maybeAccidental <*> moveOctave <*> maybe noteDur)
 
 {- an upper or lower case note ([A-Ga-g]) 
    done this way rather than a regex to get a more tractable Char result and not a String
@@ -542,14 +557,23 @@ integralAsRational =
 tuplet : Parser Music
 tuplet = Tuplet <$> (char '(' *> Combine.Num.digit)
 
+-- flip the first 2 arguments of a 3-argument function
+flip2of3 : (a -> b -> c -> d ) -> (b -> a -> c -> d)  
+flip2of3 f = 
+    let 
+      g x y z = f y x z
+    in
+      g
 
 -- builders
 
 -- build a rationalal quantity - "x/y" -> Rational x y
+{-
 buildRational : Int -> Char -> Int -> MeterSignature
 buildRational x slash y = x `over` y
+-}
 
-{- used in counting slashes logarithmically -}
+{- used in counting slashes exponentially -}
 buildRationalFromExponential : Int -> Rational
 buildRationalFromExponential i =
   Ratio.over 1 (2 ^ i)
@@ -585,14 +609,14 @@ buildBar s = case s of
         Ok i -> Iteration i
         _ -> SingleBar   -- (can't happen)
 
-buildNote : Char -> Maybe String -> Int -> Maybe Rational -> Music
+buildNote : Char -> Maybe String -> Int -> Maybe Rational -> AbcNote
 buildNote c macc octave ml = 
    let 
      l = withDefault (Ratio.fromInt 1) ml
      a = buildAccidental macc
      spn = scientificPitchNotation c octave
    in 
-     Note { pitchClass = c, accidental = a, octave = spn, duration = l }
+     { pitchClass = c, accidental = a, octave = spn, duration = l }
 
 {- investigate a note/octave pair and return the octave
    in scientific pitch notation (middle C = 4)
@@ -616,8 +640,8 @@ buildAccidental ms = case ms of
 
                 
 {- just for debug purposes - consume the rest of the input -}
-rest : Parser (List Char)
-rest = many anyChar
+restOfInput : Parser (List Char)
+restOfInput = many anyChar
 
 -- top level parsers
 abc : Parser AbcTune
@@ -630,7 +654,7 @@ abc = (,) <$> headers <*> body
 parse : String -> Result.Result String AbcTune
 parse s =
   -- case Combine.parse midi s of 
-  case Combine.parse (abc <* rest) s of
+  case Combine.parse (abc <* restOfInput) s of
     (Ok n, _) ->
       Ok n
 
