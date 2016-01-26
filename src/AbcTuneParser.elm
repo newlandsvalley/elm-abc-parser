@@ -70,10 +70,11 @@ type Music
   | Tie
   | Decoration String
   | Slur Char
-  | GraceNote Bool (List AbcNote)
+  | GraceNote Bool Music         -- Music restricted to note sequences or chords
   | ChordSymbol String
   | Chord (List AbcNote)
   | Inline Header
+  | NoteSequence (List Music)
   | Spacer Int
 
 type alias Bar = 
@@ -273,7 +274,7 @@ graceNote =  between (char '{') (char '}') grace
                <?> "grace note"
 
 grace : Parser Music
-grace = GraceNote <$> acciaccatura <*> many1 abcNote
+grace = GraceNote <$> acciaccatura <*> choice [noteSequence, chord]
 
 {- acciaccaturas are indicated with an optional forward slash -}
 acciaccatura : Parser Bool
@@ -290,7 +291,9 @@ longDecoration : Parser String
 longDecoration =  between (char '!') (char '!') (regex "[^\r\n!]*")
                <?> "long decoration"
 
-
+{- just a sequence of Notes -}
+noteSequence : Parser Music
+noteSequence = NoteSequence <$> many1 note
 
 -- general attributes
 -- e.g 3/4
