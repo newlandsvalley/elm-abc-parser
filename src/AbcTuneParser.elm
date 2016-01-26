@@ -68,6 +68,7 @@ type Music
   | Rest Int
   | Tuplet TupletSignature (List AbcNote)
   | Tie
+  | Decoration String
   | Slur Char
   | GraceNote Bool (List AbcNote)
   | ChordSymbol String
@@ -209,6 +210,7 @@ musicItem =
        , slur
        , graceNote           -- we are not enforcing the ordering of grace notes, chords etc pre-note
        , chordSymbol
+       , decoration
        , spacer
        ]       
     )
@@ -277,6 +279,18 @@ grace = GraceNote <$> acciaccatura <*> many1 abcNote
 acciaccatura : Parser Bool
 -- acciaccatura = withDefault False <$> ( (\_ -> True) <$> maybe (char '/'))
 acciaccatura = (\_ -> True) <$> maybe (char '/')
+
+decoration : Parser Music
+decoration = Decoration <$> choice [shortDecoration, longDecoration]
+
+shortDecoration : Parser String
+shortDecoration = regex "[\\.~HLMOPSTuv]"
+
+longDecoration : Parser String
+longDecoration =  between (char '!') (char '!') (regex "[^\r\n!]*")
+               <?> "long decoration"
+
+
 
 -- general attributes
 -- e.g 3/4

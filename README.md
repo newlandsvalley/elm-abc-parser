@@ -25,10 +25,10 @@ To do:
 
 *  Articulations
 *  Annotations
-*  Decorations
 *  Tempo: common time
 *  Beams: recognise backtick separators    
 *  Ties: attach to leading note
+*  Grace notes: containing chords
     
  
  
