@@ -61,7 +61,6 @@ type alias AbcNote =
   ,  duration : NoteDuration
 }
 
-
 type Music 
   = Barline Bar
   | Note AbcNote
@@ -70,6 +69,7 @@ type Music
   | Tuplet TupletSignature (List AbcNote)
   | Tie
   | Slur Char
+  | GraceNote Bool (List AbcNote)
   | ChordSymbol String
   | Chord (List AbcNote)
   | Inline Header
@@ -207,6 +207,7 @@ musicItem =
        , tuplet
        , tie
        , slur
+       , graceNote           -- we are not enforcing the ordering of grace notes, chords etc pre-note
        , chordSymbol
        , spacer
        ]       
@@ -265,6 +266,17 @@ inline : Parser Music
 inline = Inline <$> 
            between (char '[') (char ']') tuneBodyInfo
 
+graceNote : Parser Music
+graceNote =  between (char '{') (char '}') grace
+               <?> "grace note"
+
+grace : Parser Music
+grace = GraceNote <$> acciaccatura <*> many1 abcNote
+
+{- acciaccaturas are indicated with an optional forward slash -}
+acciaccatura : Parser Bool
+-- acciaccatura = withDefault False <$> ( (\_ -> True) <$> maybe (char '/'))
+acciaccatura = (\_ -> True) <$> maybe (char '/')
 
 -- general attributes
 -- e.g 3/4

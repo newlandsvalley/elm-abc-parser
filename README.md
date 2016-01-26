@@ -26,7 +26,6 @@ To do:
 *  Articulations
 *  Annotations
 *  Decorations
-*  Grace notes
 *  Tempo: common time
 *  Beams: recognise backtick separators    
 *  Ties: attach to leading note

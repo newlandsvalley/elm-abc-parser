@@ -119,6 +119,7 @@ view address model =
     , button [ onClick address (Load "abc/inline.abc") ] [ text "inline info sample" ]
     , button [ onClick address (Load "abc/complextuplet.abc") ] [ text "tuplet sample" ]
     , button [ onClick address (Load "abc/slurs.abc") ] [ text "slurs sample" ]
+    , button [ onClick address (Load "abc/grace.abc") ] [ text "grace note sample" ]
     , div [  ] [ text ("parse result: " ++ (viewParseResult model.transcription)) ]
     ]
 
