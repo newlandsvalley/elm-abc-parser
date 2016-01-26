@@ -109,13 +109,16 @@ viewParseResult mr =
 view : Signal.Address Action -> Model -> Html
 view address model =
   div []
-    [ button [ onClick address (Load "abc/lillasystern.abc") ] [ text "lillasystern" ]
+    [ 
+      button [ onClick address (Load "abc/justnotes.abc") ] [ text "just notes" ]
+    , button [ onClick address (Load "abc/lillasystern.abc") ] [ text "lillasystern" ]
     , button [ onClick address (Load "abc/PolskaRattvik.abc") ] [ text "Rattvik polska" ]
     , button [ onClick address (Load "abc/LasseiLyby.abc") ] [ text "Lasse i Lyby" ]
     , button [ onClick address (Load "abc/ChordSymbols.abc") ] [ text "cord symbols sample" ]
     , button [ onClick address (Load "abc/Chords.abc") ] [ text "cord sample" ]
     , button [ onClick address (Load "abc/inline.abc") ] [ text "inline info sample" ]
     , button [ onClick address (Load "abc/complextuplet.abc") ] [ text "tuplet sample" ]
+    , button [ onClick address (Load "abc/slurs.abc") ] [ text "slurs sample" ]
     , div [  ] [ text ("parse result: " ++ (viewParseResult model.transcription)) ]
     ]
 

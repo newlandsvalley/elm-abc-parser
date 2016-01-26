@@ -69,6 +69,7 @@ type Music
   | Rest Int
   | Tuplet TupletSignature (List AbcNote)
   | Tie
+  | Slur Char
   | ChordSymbol String
   | Chord (List AbcNote)
   | Inline Header
@@ -181,12 +182,12 @@ abc = (,) <$> headers <*> many1 body <* restOfInput
 -- BODY
 body : Parser BodyPart
 body = choice 
-         [ notesBody
+         [ score
          , tuneBodyHeader
          ]
 
-notesBody : Parser BodyPart 
-notesBody = Score <$> musicLine <* endLine 
+score : Parser BodyPart 
+score = Score <$> musicLine <* endLine 
 
 musicLine : Parser (List Music)
 musicLine = many musicItem
@@ -205,6 +206,7 @@ musicItem =
        , rest
        , tuplet
        , tie
+       , slur
        , chordSymbol
        , spacer
        ]       
@@ -234,7 +236,11 @@ barSeparator =
 
 tie : Parser Music
 tie = succeed Tie <* char '-'
-             <?> "rest"
+             <?> "tie"
+
+slur : Parser Music
+slur = Slur <$> choice [char '(', char ')']
+             <?> "slur"
 
 brokenRhythmTie : Parser Char
 brokenRhythmTie  = choice [ char '<', char '>']
@@ -503,8 +509,10 @@ tuneBodyInfo =
          , anywhereInfo ] 
            <?> "tune body info"
 
+{- relax the spec in the pasring of headers to allow body-only tunes -}
 headers : Parser TuneHeaders
-headers = many1 header <?> "headers"
+headers = many header <?> "headers"
+-- headers = many1 header <?> "headers"
 
 -- low level parsers
 -- possible whitespace
@@ -556,7 +564,7 @@ note = Note <$> abcNote
 
 abcNote : Parser AbcNote
 -- anote = buildNote <$> (regex "[A-Ga-g]") <*> maybeAccidental <*> moveOctave <*> maybe Combine.Num.digit
-abcNote = buildNote <$> keyClass <*> maybeAccidental <*> moveOctave <*> maybe noteDur
+abcNote = buildNote <$> maybeAccidental <*> keyClass <*> moveOctave <*> maybe noteDur
 
 {- an upper or lower case note ([A-Ga-g]) 
    done this way rather than a regex to get a more tractable Char result and not a String
@@ -567,11 +575,13 @@ keyClass =
     f a = (toCode a >= 65 && toCode a <= 71)
           || (toCode a >= 97 && toCode a <= 103)
   in 
-    satisfy f 
+    log "KeyClass" <$> satisfy f 
 
 -- maybe an accidental defining a note's pitch
 maybeAccidental : Parser (Maybe String)
 maybeAccidental = 
+  log "maybe accidental" <$> 
+  (
   maybe <|
       choice
         [ string "^^"
@@ -580,6 +590,7 @@ maybeAccidental =
         , string "_"
         , string "="
         ]
+  )
 
 -- move an octave - altering a note's pitch (up or down) by a succession of octaves
 moveOctave : Parser Int
@@ -681,8 +692,8 @@ buildTempoSignature ms1 fs c i ms2 =
 buildBarline : String -> Maybe Int -> Music
 buildBarline s i = Barline { separator = s, iteration = i }
           
-buildNote : Char -> Maybe String -> Int -> Maybe Rational -> AbcNote
-buildNote c macc octave ml = 
+buildNote : Maybe String -> Char -> Int -> Maybe Rational -> AbcNote
+buildNote macc c octave ml = 
    let 
      l = withDefault (Ratio.fromInt 1) ml
      a = buildAccidental macc
