@@ -34,6 +34,7 @@ import String exposing (fromList, toList)
 import Char exposing (fromCode, toCode, isUpper)
 import Debug exposing (..)
 import Maybe exposing (withDefault)
+import Maybe.Extra exposing (join)
 import Result exposing (Result)
 
 {-| AbcTune -}
@@ -66,10 +67,11 @@ type Music
   | Note AbcNote
   | BrokenRhythmPair AbcNote Char AbcNote
   | Rest Int
-  | Tuplet Int
+  | Tuplet TupletSignature (List AbcNote)
   | Tie
   | ChordSymbol String
   | Chord (List AbcNote)
+  | Inline Header
   | Spacer Int
 
 type alias Bar = 
@@ -133,6 +135,15 @@ type alias TempoSignature =
 {-| a Note Duration - e.g. 1/4 -}
 type alias NoteDuration = Rational
 
+{-| a tuplet signature -}
+type alias TupletSignature =
+  { p : Int      -- put p notes
+  , q : Int        -- into the time of q
+  , r : Int            -- for the next r notes
+  }
+
+
+
 {-| an ABC Tune Header -}
 type Header =
       Area String
@@ -187,6 +198,7 @@ musicItem =
     choice 
        [ 
          chord               -- I think we need it placed before barline because of ambiguity of '['
+       , inline              -- ditto
        , barline
        , brokenRhythmPair    -- must place before note because of potential ambiguity of AbcNote
        , note
@@ -194,7 +206,6 @@ musicItem =
        , tuplet
        , tie
        , chordSymbol
-       -- , bodyStuff
        , spacer
        ]       
     )
@@ -244,6 +255,10 @@ chord : Parser Music
 chord = Chord <$> 
          between (char '[') (char ']') (many1 abcNote)
 
+inline : Parser Music
+inline = Inline <$> 
+           between (char '[') (char ']') tuneBodyInfo
+
 
 -- general attributes
 -- e.g 3/4
@@ -253,7 +268,6 @@ rational = Ratio.over <$> int <* char '/' <*> int
 
 -- e.g. /4 (as found in note durations)
 curtailedRational : Parser Rational
--- curtailedRational = buildRational 1 <$> char '/' <*> int
 curtailedRational = Ratio.over 1 <$> (char '/' *> int)
 
 {- e.g. / or // or /// (as found in note durations)
@@ -609,9 +623,23 @@ integralAsRational : Parser Rational
 integralAsRational =
    Ratio.fromInt <$> Combine.Num.digit
 
-
 tuplet : Parser Music
-tuplet = Tuplet <$> (char '(' *> Combine.Num.digit)
+tuplet = Tuplet <$> (char '(' *> tupletSignature) <*> many1 abcNote
+
+{- possible tuplet signatures
+   (3             --> {3,2,3}
+   (3:2           --> {3,2,3}
+   (3::           --> {3,2,3}
+   (3:2:4         --> {3,2,4}
+   (3::2          --> {3,2,2}
+-}
+tupletSignature : Parser TupletSignature
+tupletSignature = buildTupletSignature <$> 
+   regex "[2-9]" <*> tup <*> tup
+
+tup : Parser (Maybe String)
+tup = join <$> maybe 
+        (char ':' *> maybe (regex "[2-9]"))
 
 -- flip the first 2 arguments of a 3-argument function
 {-
@@ -681,14 +709,28 @@ buildAccidental ms = case ms of
    Just "="  -> Just Natural
    _ -> Nothing 
 
+{- build a tuplet signature {p,q,r) - p notes in the time taken for q
+   in operation over the next r notes
+-}
+buildTupletSignature : String -> Maybe String -> Maybe String -> TupletSignature
+buildTupletSignature ps mq mr = 
+  let 
+    p = toTupletInt ps
+    q = withDefault (p-1) (Maybe.map toTupletInt mq)
+    r = withDefault p (Maybe.map toTupletInt mr)
+  in
+    { p = p, q = q, r = r }
+
+toTupletInt : String -> Int
+toTupletInt s =
+  s |> String.toInt
+    |> Result.toMaybe
+    |> withDefault 3   -- default can't happen because all strings are regex-parsed 2-9    
 
                 
 {- just for debug purposes - consume the rest of the input -}
 restOfInput : Parser (List Char)
 restOfInput = many anyChar
-
-
-
           
 -- exported functions
 

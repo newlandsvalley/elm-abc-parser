@@ -15,12 +15,23 @@ Dependencies
 
 *  Bogdanp/elm-combine 2.0.0
 *  imeckler/ratio 2.0.0
+*  circuithub/elm-maybe-extra 1.6.0
 *  elm-lang/core 3.0.0
 
 Limitations
 -----------
 
-ABC Headers have been implemented.  In the tune body, bar lines, notes ties, chords and chord symbols have been implemented, rests and tuplets are partly finished. Slurs,  articulations, annotations and decorations have not been started.
+To do:
+
+*  Slurs
+*  Articulations
+*  Annotations
+*  Decorations
+*  Grace notes
+*  Tempo: common time
+*  Tuplets: recognise backtick separators    
+    
+ 
  
 
 

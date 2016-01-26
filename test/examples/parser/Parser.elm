@@ -114,6 +114,8 @@ view address model =
     , button [ onClick address (Load "abc/LasseiLyby.abc") ] [ text "Lasse i Lyby" ]
     , button [ onClick address (Load "abc/ChordSymbols.abc") ] [ text "cord symbols sample" ]
     , button [ onClick address (Load "abc/Chords.abc") ] [ text "cord sample" ]
+    , button [ onClick address (Load "abc/inline.abc") ] [ text "inline info sample" ]
+    , button [ onClick address (Load "abc/complextuplet.abc") ] [ text "tuplet sample" ]
     , div [  ] [ text ("parse result: " ++ (viewParseResult model.transcription)) ]
     ]
 
