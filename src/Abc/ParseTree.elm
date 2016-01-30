@@ -69,6 +69,7 @@ type alias AbcNote =
   ,  accidental : Maybe Accidental
   ,  octave : Int
   ,  duration : NoteDuration
+  ,  tied : Bool   -- to the next note
 }
 
 {-| the 'score' part of Music -}
@@ -78,7 +79,6 @@ type Music
   | BrokenRhythmPair AbcNote Char AbcNote
   | Rest Int
   | Tuplet TupletSignature (List AbcNote)
-  | Tie
   | Decoration String
   | Slur Char
   | GraceNote Bool Music         -- Music restricted to note sequences or chords

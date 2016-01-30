@@ -56,7 +56,6 @@ musicItem =
        , note
        , rest
        , tuplet
-       , tie
        , slur
        , graceNote           -- we are not enforcing the ordering of grace notes, chords etc pre-note
        , chordSymbol
@@ -87,9 +86,7 @@ barSeparator =
         ]
     )             
 
-tie : Parser Music
-tie = succeed Tie <* char '-'
-             <?> "tie"
+
 
 slur : Parser Music
 slur = Slur <$> choice [char '(', char ')']
@@ -450,8 +447,7 @@ note : Parser Music
 note = Note <$> abcNote
 
 abcNote : Parser AbcNote
--- anote = buildNote <$> (regex "[A-Ga-g]") <*> maybeAccidental <*> moveOctave <*> maybe Combine.Num.digit
-abcNote = buildNote <$> maybeAccidental <*> keyClass <*> moveOctave <*> maybe noteDur
+abcNote = buildNote <$> maybeAccidental <*> keyClass <*> moveOctave <*> maybe noteDur <*> maybeTie
 
 {- an upper or lower case note ([A-Ga-g]) 
    done this way rather than a regex to get a more tractable Char result and not a String
@@ -515,6 +511,11 @@ noteDur =
     , curtailedRational
     , slashesRational
     ]
+
+{- now attached to leading note and not free-standing -}
+maybeTie : Parser (Maybe Char)
+maybeTie = (maybe (char '-'))
+         <?> "tie"
 
 
 integralAsRational : Parser Rational
@@ -584,14 +585,17 @@ buildKeySignature kc ma mm =
 buildBarline : String -> Maybe Int -> Music
 buildBarline s i = Barline { separator = s, iteration = i }
           
-buildNote : Maybe String -> Char -> Int -> Maybe Rational -> AbcNote
-buildNote macc c octave ml = 
+buildNote : Maybe String -> Char -> Int -> Maybe Rational -> Maybe Char -> AbcNote
+buildNote macc c octave ml mt = 
    let 
      l = withDefault (Ratio.fromInt 1) ml
      a = buildAccidental macc
      spn = scientificPitchNotation c octave
+     tied = case mt of
+        Just _ -> True
+        _ -> False
    in 
-     { pitchClass = c, accidental = a, octave = spn, duration = l }
+     { pitchClass = c, accidental = a, octave = spn, duration = l, tied = tied }
 
 {- investigate a note/octave pair and return the octave
    in scientific pitch notation (middle C = 4)

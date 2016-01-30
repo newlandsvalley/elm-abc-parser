@@ -121,11 +121,15 @@ abcNote a =
   let
      acc = withDefault ""
             (Maybe.map accidental a.accidental)
+     tie = case a.tied of
+       True -> "-"
+       _ -> ""
   in
      acc
      ++ String.fromChar a.pitchClass
      ++ octave a.octave
      ++ duration a.duration
+     ++ tie
      
 notes : List AbcNote -> String
 notes ns = 
@@ -143,6 +147,12 @@ rest n =
           else ""
   in
     "z" ++ num
+
+decorate : String -> String
+decorate s =
+  if (String.length s == 1)
+     then s
+     else "!" ++ s ++ "!"
     
 musics : List Music-> String
 musics ms = 
@@ -158,9 +168,10 @@ music m = case m of
    BrokenRhythmPair a1 c a2 -> abcNote a1 ++ fromChar c ++ abcNote a2
    Rest r -> rest r
    Tuplet tup ns -> tuplet tup ++ notes ns
-   Decoration s -> enquote s
+   Decoration s -> decorate s
    GraceNote isAcciaccatura m -> "{" ++ music m ++ "}"
    ChordSymbol s -> enquote s
+   Chord ns -> "[" ++ notes ns ++ "]"
    Inline h -> "[" ++ header h ++ "]"
    NoteSequence ms -> musics ms
    Spacer i -> " "
