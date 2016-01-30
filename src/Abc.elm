@@ -197,7 +197,7 @@ keyName : Parser String
 keyName = regex "[A-G]"
 
 keySignature : Parser KeySignature
-keySignature = (,,) <$> keyName <*> maybe sharpOrFlat <*> maybe mode
+keySignature = buildKeySignature <$> keyName <*> maybe sharpOrFlat <*> maybe mode
 
 mode : Parser Mode
 mode = choice 
@@ -565,6 +565,11 @@ buildTempoSignature ms1 fs c i ms2 =
     , bpm = i
     , marking = ms
     }
+
+-- build a key signature
+buildKeySignature : String -> Maybe Accidental -> Maybe Mode -> KeySignature
+buildKeySignature kc ma mm =
+  { keyClass = kc, accidental = ma, mode = mm }
 
 {- build a bar line (i.e. a separation  between bars) -}
 buildBarline : String -> Maybe Int -> Music

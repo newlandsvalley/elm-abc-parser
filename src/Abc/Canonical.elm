@@ -72,24 +72,39 @@ tempo t =
         ++ toString t.bpm
         ++ text
 
+rational : Rational -> String
+rational r =
+  toString (numerator r) ++ "/" ++ toString (denominator r)
+
 ratlist : List Rational -> String
 ratlist rs = 
   let 
-    f r acc = (toString r) ++ " " ++ acc
+    f r acc = (rational r) ++ " " ++ acc
   in
     List.foldr f "" rs
     
 meter : MeterSignature -> String
-meter = toString
+meter = rational
 
 duration : NoteDuration -> String
 duration nd = 
-  if (denominator nd == 1)
+  if (denominator nd == 1) && (numerator nd == 1)
+     then ""
+  else if (denominator nd == 2) && (numerator nd == 1)
+     then "/"
+  else if (denominator nd == 1)
      then toString (numerator nd)
-     else toString nd
+     else rational nd
 
 key : KeySignature -> String
-key k = "todo"  -- make KeySignature into a record
+key k = 
+   let
+     acc = Maybe.map headerAccidental k.accidental
+           |> withDefault ""
+     md = Maybe.map mode k.mode 
+           |> withDefault ""
+   in
+     k.keyClass ++ acc  ++ md
 
 octave : Int -> String
 octave i =
@@ -108,7 +123,7 @@ abcNote a =
             (Maybe.map accidental a.accidental)
   in
      acc
-     ++ toString a.pitchClass
+     ++ String.fromChar a.pitchClass
      ++ octave a.octave
      ++ duration a.duration
      
@@ -171,7 +186,8 @@ header h = case h of
    Rhythm s -> "R: " ++ s
    Remark s -> "r: " ++ s
    Source s -> "S: " ++ s
-   Tempo t -> "T: " ++ (tempo t) 
+   Title s -> "T: " ++ s
+   Tempo t -> "Q: " ++ (tempo t) 
    UserDefined s -> "U: " ++ s
    Voice s -> "V: " ++ s
    WordsAfter s -> "W: " ++ s
@@ -189,7 +205,7 @@ tuneHeaders  hs =
     
 bodyPart : BodyPart -> String
 bodyPart bp = case bp of
-  Score ml -> "todo"
+  Score ml -> musics ml
   BodyInfo h ->  header h
   
 tuneBody : TuneBody -> String

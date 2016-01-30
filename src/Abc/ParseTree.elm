@@ -118,7 +118,11 @@ type Accidental =
 
 
 {-| a Key Signature -}
-type alias KeySignature = (String, Maybe Accidental, Maybe Mode) 
+type alias KeySignature = 
+  { keyClass : String
+  , accidental : Maybe Accidental
+  , mode : Maybe Mode
+  } 
 
 {-| a Meter Signature - e.g. 3/4 -}
 type alias MeterSignature = Rational

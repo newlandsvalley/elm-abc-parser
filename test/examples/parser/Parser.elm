@@ -2,26 +2,28 @@ module Parser where
 
 import Effects exposing (Effects, task)
 import Html exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, on, targetChecked)
+import Html.Attributes exposing (type', checked, rows, cols)
 import Http exposing (..)
 import Task exposing (..)
 import List exposing (..)
 import Maybe exposing (..)
 import String exposing (..)
 import Result exposing (Result)
+import Signal exposing (Address)
 import Abc exposing (..)
 import Abc.ParseTree exposing (..)
 import Abc.Canonical exposing (..)
 
 -- MODEL
-
 type alias Model =
-    { transcription : Result String AbcTune
+    {  roundTrip : Bool
+    ,  transcription : Result String AbcTune
     }
 
 init : String -> (Model, Effects Action)
 init topic =
-  ( { transcription = Err "not started"  }
+  ( { roundTrip = False, transcription = Err "not started"  }
   , Effects.none
   )
 
@@ -29,6 +31,7 @@ init topic =
 
 type Action
     = NoOp
+    | RoundTrip Bool
     | Load String
     | Abc (Result String AbcTune )
 
@@ -37,10 +40,11 @@ update action model =
   case action of
     NoOp -> (model, Effects.none )
 
-    Abc result ->  ( { transcription = result }, Effects.none ) 
+    RoundTrip b -> ( { model | roundTrip = b}, Effects.none )
 
-    Load url -> (model, loadAbc url) 
-  
+    Abc result ->  ( { model | transcription = result }, Effects.none ) 
+
+    Load url -> (model, loadAbc url)   
 
 
    
@@ -99,14 +103,29 @@ parseLoadedFile r =
 
 -- VIEW
 
+viewAbc : Result String String -> String
+viewAbc ra = 
+   case ra of
+      Ok res -> 
+         res
+      Err errs -> 
+         "Fail: " ++ (toString errs)
+
 viewParseResult : Result String AbcTune -> String
-viewParseResult mr = 
-   case mr of
+viewParseResult ra = 
+   case ra of
       Ok res -> 
          "OK: " ++ (toString res)
       Err errs -> 
          "Fail: " ++ (toString errs)
 
+viewResult : Model -> String
+viewResult model =
+  if (model.roundTrip) 
+    then
+      viewAbc (model.transcription |> Abc.Canonical.fromResult)
+    else 
+      viewParseResult model.transcription
 
 view : Signal.Address Action -> Model -> Html
 view address model =
@@ -152,8 +171,31 @@ view address model =
               button [ onClick address (Load "abc/staccato.abc") ] [ text "decoration (staccato)" ]
               ]
       ]
-    , div [  ] [ text ("parse result: " ++ (viewParseResult model.transcription)) ]
+    , div [  ] (checkbox address model.roundTrip RoundTrip "round trip")
+    , div [  ] [ 
+         textarea textAreaStyle  [text (viewResult model) ]
+         ]
     ]
+
+checkbox : Address Action -> Bool -> (Bool -> Action) -> String -> List Html
+checkbox address isChecked tag name =
+  [ input
+      [ type' "checkbox"
+      , checked isChecked
+      , on "change" targetChecked (Signal.message address << tag)
+      ]
+      []
+  , text name
+  , br [] []
+  ]
+
+-- STYLE
+
+textAreaStyle : List Attribute
+textAreaStyle =
+  [ rows 40
+  , cols 180
+  ]
 
 -- INPUTS
 
