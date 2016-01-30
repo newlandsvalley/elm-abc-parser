@@ -9,7 +9,9 @@ import List exposing (..)
 import Maybe exposing (..)
 import String exposing (..)
 import Result exposing (Result)
-import AbcTuneParser exposing (..)
+import Abc exposing (..)
+import Abc.ParseTree exposing (..)
+import Abc.Canonical exposing (..)
 
 -- MODEL
 
@@ -108,20 +110,48 @@ viewParseResult mr =
 
 view : Signal.Address Action -> Model -> Html
 view address model =
-  div []
+  div []    
     [ 
-      button [ onClick address (Load "abc/justnotes.abc") ] [ text "just notes" ]
-    , button [ onClick address (Load "abc/lillasystern.abc") ] [ text "lillasystern" ]
-    , button [ onClick address (Load "abc/PolskaRattvik.abc") ] [ text "Rattvik polska" ]
-    , button [ onClick address (Load "abc/LasseiLyby.abc") ] [ text "Lasse i Lyby" ]
-    , button [ onClick address (Load "abc/ChordSymbols.abc") ] [ text "cord symbols sample" ]
-    , button [ onClick address (Load "abc/Chords.abc") ] [ text "cord sample" ]
-    , button [ onClick address (Load "abc/inline.abc") ] [ text "inline info sample" ]
-    , button [ onClick address (Load "abc/complextuplet.abc") ] [ text "tuplet sample" ]
-    , button [ onClick address (Load "abc/slurs.abc") ] [ text "slurs sample" ]
-    , button [ onClick address (Load "abc/grace.abc") ] [ text "grace note sample" ]
-    , button [ onClick address (Load "abc/coda.abc") ] [ text "decoration (coda)" ]
-    , button [ onClick address (Load "abc/staccato.abc") ] [ text "decoration (staccato)" ]
+    text "parse:"
+    ,  ul []      
+      [
+        li [] [
+              button [ onClick address (Load "abc/justnotes.abc") ] [ text "just notes" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/lillasystern.abc") ] [ text "lillasystern" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/PolskaRattvik.abc") ] [ text "Rattvik polska" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/LasseiLyby.abc") ] [ text "Lasse i Lyby" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/ChordSymbols.abc") ] [ text "cord symbols sample" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/Chords.abc") ] [ text "cord sample" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/inline.abc") ] [ text "inline info sample" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/complextuplet.abc") ] [ text "tuplet sample" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/slurs.abc") ] [ text "slurs sample" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/grace.abc") ] [ text "grace note sample" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/coda.abc") ] [ text "decoration (coda)" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/staccato.abc") ] [ text "decoration (staccato)" ]
+              ]
+      ]
     , div [  ] [ text ("parse result: " ++ (viewParseResult model.transcription)) ]
     ]
 
