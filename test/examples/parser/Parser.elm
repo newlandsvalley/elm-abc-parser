@@ -170,6 +170,9 @@ view address model =
       , li [] [
               button [ onClick address (Load "abc/staccato.abc") ] [ text "decoration (staccato)" ]
               ]
+      , li [] [
+              button [ onClick address (Load "abc/comment.abc") ] [ text "comment sample" ]
+              ]
       ]
     , div [  ] (checkbox address model.roundTrip RoundTrip "round trip")
     , div [  ] [ 

@@ -178,6 +178,7 @@ type Header =
     | WordsAligned String               -- words aligned with notes
     | ReferenceNumber Int
     | Transcription String
+    | Comment String
 
 
 

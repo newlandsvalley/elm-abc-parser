@@ -147,7 +147,6 @@ noteSequence = NoteSequence <$> many1 note
 -- general attributes
 -- e.g 3/4
 rational : Parser Rational
--- rational = buildRational <$> int <*> char '/' <*> int
 rational = Ratio.over <$> int <* char '/' <*> int
 
 -- e.g. /4 (as found in note durations)
@@ -372,7 +371,9 @@ anywhereInfo =
          , title
          , userDefined
          , voice
-         , wordsAfter ]
+         , wordsAfter
+         , comment
+         ]
             <?> "anywhere info"
 
 tuneBodyOnlyInfo : Parser Header
@@ -391,6 +392,14 @@ tuneBodyInfo =
 headers : Parser TuneHeaders
 headers = many header <?> "headers"
 -- headers = many1 header <?> "headers"
+
+{- comments.  These are introduced with '%' and can occur anywhere.
+   The stylesheet directive '%%' is not recognized here and will
+   simply be treated as a comment.  We'll treat comments as Headers
+   so as not to pollute the parse tree overmuch
+-}
+comment : Parser Header
+comment = Comment <$> (regex "%" *> strToEol)
 
 -- low level parsers
 -- possible whitespace

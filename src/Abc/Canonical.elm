@@ -194,6 +194,7 @@ header h = case h of
    WordsAligned s -> "w: " ++ s
    ReferenceNumber i -> "X: " ++ (toString i)
    Transcription s -> "Z: " ++ s
+   Comment s -> "%" ++ s
    _ -> ""
 
 tuneHeaders : List Header -> String
