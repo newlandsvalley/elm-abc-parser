@@ -107,8 +107,8 @@ slur = rec <| \() ->
 -}
 
 
-brokenRhythmTie : Parser Char
-brokenRhythmTie  = choice [ char '<', char '>']
+brokenRhythmTie : Parser String
+brokenRhythmTie  = regex "(<+|>+)"
 
 brokenRhythmPair : Parser Music
 brokenRhythmPair = BrokenRhythmPair <$> abcNote <*> brokenRhythmTie <*> abcNote
@@ -161,6 +161,8 @@ noteSequence = NoteSequence <$> many1 note
 rational : Parser Rational
 rational = Ratio.over <$> int <* char '/' <*> int
 
+
+
 -- e.g. /4 (as found in note durations)
 curtailedRational : Parser Rational
 curtailedRational = Ratio.over 1 <$> (char '/' *> int)
@@ -179,8 +181,30 @@ slashesRational =
 headerRational : Parser Rational
 headerRational = rational <* whiteSpace
 
+{- experimental -}
+meterDefinition : Parser MeterSignature
+meterDefinition =
+  choice 
+   [
+     cutTime
+   , commonTime
+   , meterSignature
+   ]
+
+commonTime : Parser MeterSignature
+commonTime = succeed (4,4) <* char 'C'
+
+cutTime : Parser MeterSignature
+cutTime = succeed (2,2) <* string "C|"
+
+-- can't use Rationals for these because they cancel
+meterSignature : Parser MeterSignature
+meterSignature = (,) <$> int <* char '/' <*> int <* whiteSpace
+
+{-
 meterSignature : Parser MeterSignature
 meterSignature = rational <* whiteSpace
+-}
 
 noteDuration : Parser NoteDuration
 noteDuration = rational <* whiteSpace
@@ -285,7 +309,7 @@ unitNoteLength : Parser Header
 unitNoteLength = UnitNoteLength <$> ((headerCode 'L') *> noteDuration )
 
 meter : Parser Header
-meter = Meter <$> ((headerCode 'M') *> meterSignature  )
+meter = Meter <$> ((headerCode 'M') *> meterDefinition  )
 
 macro : Parser Header
 macro = Macro <$> ((headerCode 'm') *> inlineInfo)
@@ -435,7 +459,7 @@ continuation : Parser Bool
 continuation = succeed True <* char '\\' <* regex "[^\r\n]*"
 
 endLine : Parser Bool
-endLine = withDefault False <$> maybe continuation <* regex "(\r\n|\n)" 
+endLine = withDefault False <$> maybe continuation <* regex "(\r\n|\n|\r)" 
             <?> "end line"
 
 

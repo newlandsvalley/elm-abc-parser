@@ -76,7 +76,7 @@ type alias AbcNote =
 type Music 
   = Barline Bar
   | Note AbcNote
-  | BrokenRhythmPair AbcNote Char AbcNote
+  | BrokenRhythmPair AbcNote String AbcNote
   | Rest Int
   | Tuplet TupletSignature (List AbcNote)
   | Decoration String
@@ -125,7 +125,7 @@ type alias KeySignature =
   } 
 
 {-| a Meter Signature - e.g. 3/4 -}
-type alias MeterSignature = Rational
+type alias MeterSignature = (Int, Int)
 
 {-| a Tempo Signature - e.g. 1/4=120
     or 1/4 3/8 1/4 3/8=40   (up to 4 note lengths allowed)

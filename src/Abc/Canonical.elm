@@ -96,10 +96,10 @@ ratlist rs =
     
 meter : MeterSignature -> String
 meter m = 
-  if (denominator m == 1) && (numerator m == 1)
-    then "4/4"
-  else
-    rational m
+  let 
+    (n, d) = m
+  in
+    toString n ++ "/" ++ toString d
 
 duration : NoteDuration -> String
 duration nd = 
@@ -180,7 +180,7 @@ music : Music -> String
 music m = case m of
    Barline b -> bar b
    Note a -> abcNote a
-   BrokenRhythmPair a1 c a2 -> abcNote a1 ++ fromChar c ++ abcNote a2
+   BrokenRhythmPair a1 s a2 -> abcNote a1 ++ s ++ abcNote a2
    Rest r -> rest r
    Tuplet tup ns -> tuplet tup ++ notes ns
    Decoration s -> decorate s
