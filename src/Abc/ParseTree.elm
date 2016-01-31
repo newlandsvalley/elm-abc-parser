@@ -85,7 +85,7 @@ type Music
   | ChordSymbol String
   | Chord (List AbcNote)
   | Inline Header
-  | NoteSequence (List Music)
+  | NoteSequence (List Music)    -- Music restricted to note sequences
   | Spacer Int
 
 {-| a Bar line -}

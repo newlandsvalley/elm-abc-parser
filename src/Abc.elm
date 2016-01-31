@@ -44,7 +44,7 @@ musicLine : Parser (List Music)
 musicLine = many musicItem
 
 musicItem : Parser Music
-musicItem = 
+musicItem = rec <| \() -> 
     log "music item" <$>
     (
     choice 
@@ -84,13 +84,28 @@ barSeparator =
         , char ']'
         , char ':'
         ]
-    )             
-
-
+    )       
 
 slur : Parser Music
 slur = Slur <$> choice [char '(', char ')']
+             <?> "slur"      
+
+{- Note, Slur should really be defined as Slur (List Music) and then parsed as shown below.  This would allow slurs to be
+   nested and the parser to test that the brackets are balanced.  However, unfortunately, in the wild there are examples
+   of slurs that go across music lines which make this interpretation impossible.  We thus simply parse the bracket characters.
+
+   lazy evaluation of this unimplemented slur - comments courtesy of Bogdanp.
+   Elm is eagerly evaluated so slur and slurContent end up creating a circular dependency that gets evaluated as soon as the output JS does, 
+   which means one function ends up calling the constructor of the other before the other is defined. The rec combinator introduces
+   laziness to get round the problem
+
+
+slur : Parser Music
+slur = rec <| \() -> 
+        Slur <$>  parens (many1 musicItem)
              <?> "slur"
+-}
+
 
 brokenRhythmTie : Parser Char
 brokenRhythmTie  = choice [ char '<', char '>']
@@ -458,13 +473,11 @@ keyClass =
     f a = (toCode a >= 65 && toCode a <= 71)
           || (toCode a >= 97 && toCode a <= 103)
   in 
-    log "KeyClass" <$> satisfy f 
+    satisfy f 
 
 -- maybe an accidental defining a note's pitch
 maybeAccidental : Parser (Maybe String)
 maybeAccidental = 
-  log "maybe accidental" <$> 
-  (
   maybe <|
       choice
         [ string "^^"
@@ -473,7 +486,7 @@ maybeAccidental =
         , string "_"
         , string "="
         ]
-  )
+ 
 
 -- move an octave - altering a note's pitch (up or down) by a succession of octaves
 moveOctave : Parser Int

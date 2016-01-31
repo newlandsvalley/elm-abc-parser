@@ -170,12 +170,13 @@ music m = case m of
    Tuplet tup ns -> tuplet tup ++ notes ns
    Decoration s -> decorate s
    GraceNote isAcciaccatura m -> "{" ++ music m ++ "}"
+   Slur c -> String.fromChar c
    ChordSymbol s -> enquote s
    Chord ns -> "[" ++ notes ns ++ "]"
    Inline h -> "[" ++ header h ++ "]"
    NoteSequence ms -> musics ms
    Spacer i -> " "
-   _ -> ""
+   -- _ -> ""
 
 header : Header -> String
 header h = case h of
