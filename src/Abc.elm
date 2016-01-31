@@ -17,7 +17,7 @@ import Combine.Char exposing (..)
 import Combine.Infix exposing (..)
 import Combine.Num exposing (..)
 import Ratio exposing (Rational, over, fromInt)
-import String exposing (fromList, toList)
+import String exposing (fromList, toList, foldl)
 import Char exposing (fromCode, toCode, isUpper)
 import Debug exposing (..)
 import Maybe exposing (withDefault)
@@ -459,7 +459,6 @@ strToEol = regex "[^\r\n]*"
 inlineInfo : Parser String
 inlineInfo = regex "[^\r\n\\[\\]]*"
 
--- temporary parsers - completely unfinished stuff
 note : Parser Music
 note = Note <$> abcNote
 
@@ -491,6 +490,7 @@ maybeAccidental =
  
 
 -- move an octave - altering a note's pitch (up or down) by a succession of octaves
+{- old implementation
 moveOctave : Parser Int
 moveOctave = 
    withDefault 0 <$>
@@ -500,10 +500,13 @@ moveOctave =
           , octave False  -- down
           ]
         )
+-}
+
 {- True means octave up (denoted by an apostrophe
    False means octave down (denoted by a comma)
    return a positive or negative number according to the number of markers parsed
 -}
+{- old implementation
 octave : Bool -> Parser Int
 octave b = 
    let 
@@ -516,6 +519,36 @@ octave b =
           _ -> 0 - l
    in
      log "octave" <$> (fn <$> (List.length <$> many1 (char c)))
+-}
+
+{- move an octave up (+ve - according to the number of apostrophes parsed)
+             or down (-ve - according to the number of commas parsed)
+-}
+moveOctave : Parser Int
+moveOctave =
+   octaveShift <$> regex "[',]*"
+
+{- count the number of apostrophe (up) or comma (down) characters in the string 
+   and give the result a value of (up-down) 
+-} 
+octaveShift : String -> Int
+octaveShift s =
+  let 
+    f c acc = case c of
+      '\'' ->
+        let 
+          (up, down) = acc
+        in
+         (up+1, down)
+      ',' ->
+        let 
+          (up, down) = acc
+        in
+         (up, down + 1)
+      _ -> acc
+    octs = String.foldl f (0,0) s
+  in
+    (fst octs - snd octs)
 
 {- the duration of a note in the body -}
 noteDur : Parser Rational
@@ -564,6 +597,9 @@ flip2of3 f =
     in
       g
 -}
+
+
+
 
 -- builders
 
