@@ -38,7 +38,7 @@ body = choice
          ]
 
 score : Parser BodyPart 
-score = Score <$> musicLine <* endLine 
+score = Score <$> musicLine <*> endLine 
 
 musicLine : Parser (List Music)
 musicLine = many musicItem
@@ -428,12 +428,14 @@ spacer = Spacer <$> ( List.length <$> (many1 space))
    beyond the limit of an old email system.  All very out of date, but nevertheless
    still prevalent in the wild.  We take the view that we must do our best to recognise 
    them and then throw them away (along with any other later stuff in the line)
--}
-continuation : Parser Char
-continuation = char '\\' <* regex "[^\r\n]*"
 
-endLine : Parser String
-endLine = maybe continuation *> regex "(\r\n|\n)" 
+   Return True if we have a continuation
+-}
+continuation : Parser Bool
+continuation = succeed True <* char '\\' <* regex "[^\r\n]*"
+
+endLine : Parser Bool
+endLine = withDefault False <$> maybe continuation <* regex "(\r\n|\n)" 
             <?> "end line"
 
 
@@ -636,10 +638,22 @@ buildTupletSignature : String -> Maybe String -> Maybe String -> TupletSignature
 buildTupletSignature ps mq mr = 
   let 
     p = toTupletInt ps
-    q = withDefault (p-1) (Maybe.map toTupletInt mq)
+
+    -- default values for q.  Not quite in accordance with spec where q varies
+    -- between 2 and 3 for odd values of p, dependent on the time signature
+    -- (but this would make the parser stateful which we don't want for such small
+    -- edge cases)
+    qdefault = case p of
+      2 -> 3
+      3 -> 2
+      4 -> 3
+      6 -> 2
+      8 -> 3
+      _ -> 2   
+    q = withDefault qdefault (Maybe.map toTupletInt mq)
     r = withDefault p (Maybe.map toTupletInt mr)
   in
-    { p = p, q = q, r = r }
+    (p,q,r)
 
 toTupletInt : String -> Int
 toTupletInt s =

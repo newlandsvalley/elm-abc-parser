@@ -15,7 +15,7 @@ module Abc.Canonical
 import Abc.ParseTree exposing (..)
 import Ratio exposing (Rational, numerator, denominator)
 import Maybe exposing (withDefault)
-import String exposing (fromChar, fromList, repeat)
+import String exposing (fromChar, fromList, repeat, trimRight)
 
 enquote : String -> String
 enquote s = "\"" ++ s ++ "\""
@@ -55,20 +55,30 @@ headerAccidental a = case a of
   
 tuplet : TupletSignature -> String
 tuplet t =
-  "(" 
-    ++ (toString t.p)
-    ++ ":"  
-    ++ (toString t.q)
-    ++ ":" 
-    ++ (toString t.r)
+  let 
+    (p,q,r) = t
+  in
+    case t of
+      (2,3,2) -> "(2"
+      (3,2,3) -> "(3"
+      (4,3,4) -> "(4"
+      _ ->  "(" 
+         ++ (toString p)
+         ++ ":"  
+         ++ (toString q)
+         ++ ":" 
+         ++ (toString r)
     
 tempo : TempoSignature -> String
 tempo t =
   let
     text = withDefault "" (Maybe.map (\s -> " " ++ s) t.marking)
+    eq = if (List.length t.noteLengths == 0)
+      then ""
+      else "="
   in 
     ratlist t.noteLengths
-        ++ "="
+        ++ eq
         ++ toString t.bpm
         ++ text
 
@@ -82,9 +92,14 @@ ratlist rs =
     f r acc = (rational r) ++ " " ++ acc
   in
     List.foldr f "" rs
+      |> trimRight
     
 meter : MeterSignature -> String
-meter = rational
+meter m = 
+  if (denominator m == 1) && (numerator m == 1)
+    then "4/4"
+  else
+    rational m
 
 duration : NoteDuration -> String
 duration nd = 
@@ -218,8 +233,14 @@ tuneHeaders  hs =
     
 bodyPart : BodyPart -> String
 bodyPart bp = case bp of
-  Score ml -> musics ml
+  Score ml isCont -> musics ml  ++ (continuation isCont)
   BodyInfo h ->  header h
+
+continuation : Bool -> String
+continuation c = 
+  if c 
+    then "\\"
+    else ""
   
 tuneBody : TuneBody -> String
 tuneBody b = 

@@ -57,7 +57,7 @@ type alias TuneBody = List BodyPart
 
 {-| A Tune Body part -}
 type BodyPart
-  =  Score MusicLine
+  =  Score MusicLine Bool
   |  BodyInfo Header
 
 {-| a line of musical score up to eol -} 
@@ -140,13 +140,10 @@ type alias TempoSignature =
 {-| a Note Duration - e.g. 1/4 -}
 type alias NoteDuration = Rational
 
-{-| a tuplet signature -}
-type alias TupletSignature =
-  { p : Int      -- put p notes
-  , q : Int        -- into the time of q
-  , r : Int            -- for the next r notes
-  }
-
+{-| a tuplet signature 
+    put p notes into the time of q the next r notes
+-}
+type alias TupletSignature = (Int, Int, Int)
 
 
 {-| an ABC Tune Header -}
