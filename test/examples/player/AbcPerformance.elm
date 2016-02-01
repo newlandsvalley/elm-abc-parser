@@ -26,9 +26,12 @@ type alias AccumulatedTime = Float
 type alias NoteDuration = Float
 type alias MidiPitch = Int
 
-
 {-| a Note Event -}    
-type alias NoteEvent = (NoteDuration, MidiPitch, Char)
+type alias SingleNote = (NoteDuration, MidiPitch, Char)
+
+type NoteEvent =
+     ANote SingleNote
+   | AChord (List SingleNote)
 
 type alias MelodyLine = List NoteEvent
 
@@ -45,7 +48,7 @@ type alias AbcTempo =
 
 type alias TranslationState = 
    { tempo : AbcTempo
-   , keySig : String
+   , tempoModifier : Float
    }
 
 {- lookup for providing offsets from C in a chromatic scale -}
@@ -120,6 +123,25 @@ noteDuration t n =
     ((Ratio.toFloat t.tempoNoteLength) * (Basics.toFloat t.bpm)) * 
      (Ratio.toFloat n)
 
+{- translate a sequence of ABC notes which can be done either in series
+   (i.e. the Melody Line is a note sequence] or in parallel (i.e. the
+   melody line contains a single chord
+-} 
+translateNoteSequence : Bool -> TranslationState -> List AbcNote -> MelodyLine
+translateNoteSequence isSeq state notes =
+  let
+    f abc = 
+      let 
+        duration = (noteDuration state.tempo abc.duration) * state.tempoModifier
+      in
+        (duration, toMidiPitch abc, abc.pitchClass)
+  in
+    if isSeq
+      then List.map f notes
+            |> List.map (\a -> ANote a)
+      else [AChord (List.map f notes)]
+
+
 {- not at all complete - translate a Music item from the parse tree to a playable note
    (note duration and MIDI pitch) 
 -}
@@ -131,15 +153,29 @@ translateMusic m acc =
     case m of
       Note abc -> 
         let 
-          duration = noteDuration state.tempo abc.duration
-          line = (duration, toMidiPitch abc, abc.pitchClass) :: melodyLine
+          duration = (noteDuration state.tempo abc.duration) * state.tempoModifier
+          line = ANote (duration, toMidiPitch abc, abc.pitchClass) :: melodyLine
         in
           (line, state)
       Rest r -> 
         let 
-          duration = noteDuration state.tempo r
-          line = (duration, 0, 'z') :: melodyLine 
+          duration = (noteDuration state.tempo r) * state.tempoModifier
+          line = ANote (duration, 0, 'z') :: melodyLine 
         in        
+          (line, state)
+      Tuplet signature notes ->
+        let 
+          (p,q,r) = signature
+          newState = {tempo = state.tempo, tempoModifier = ( Basics.toFloat q / Basics.toFloat p)}
+          tuplet = translateNoteSequence True newState notes
+          line = List.append tuplet melodyLine         
+        in 
+          (line, state)
+      Chord notes ->
+        let 
+          chord = translateNoteSequence False state notes
+          line = List.append chord melodyLine         
+        in 
           (line, state)
       _ -> acc
 
@@ -157,7 +193,7 @@ toMelodyLine state ml =
 fromAbc : AbcTune -> AbcPerformance
 fromAbc tune =   
   let
-    acc = { tempo = defaultTempo, keySig = "C" }
+    acc = { tempo = defaultTempo, tempoModifier = 1.0}
     f bp = case bp of
       Score musicLine continuation ->
          toMelodyLine acc musicLine
