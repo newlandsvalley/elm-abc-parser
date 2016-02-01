@@ -153,15 +153,9 @@ notes ns =
   in
     List.foldr f "" ns   
      
-rest : Int -> String
+rest : NoteDuration -> String
 rest n =
-  let
-     num =
-       if (n > 1)
-          then toString n
-          else ""
-  in
-    "z" ++ num
+  "z" ++ (duration n)
 
 decorate : String -> String
 decorate s =

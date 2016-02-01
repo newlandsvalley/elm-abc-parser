@@ -77,7 +77,7 @@ type Music
   = Barline Bar
   | Note AbcNote
   | BrokenRhythmPair AbcNote String AbcNote
-  | Rest Int
+  | Rest NoteDuration
   | Tuplet TupletSignature (List AbcNote)
   | Decoration String
   | Slur Char

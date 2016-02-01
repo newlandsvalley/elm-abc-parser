@@ -115,8 +115,9 @@ brokenRhythmPair = BrokenRhythmPair <$> abcNote <*> brokenRhythmTie <*> abcNote
              <?> "broken rhythm pair"
 
 rest : Parser Music
-rest = Rest <$> (withDefault 1 <$> (regex "[XxZz]" *> maybe int))
+rest = Rest <$> (withDefault (fromInt 1) <$> (regex "[XxZz]" *> maybe noteDur))
              <?> "rest"
+      
 
 {- a free - format chord symbol - see 4.18 Chord symbols -}
 chordSymbol : Parser Music
