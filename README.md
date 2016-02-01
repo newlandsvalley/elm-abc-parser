@@ -23,12 +23,16 @@ Limitations
 
 To do:
 
-*  Articulations
 *  Annotations
-*  Tempo: common time
 *  Beams: recognise backtick separators    
-*  Ties: attach to leading note
-    
+*  Admit unspecified headers
+*  Allow chords to have lengths and/or articulations
+*  Dotted grace notes and slurs!
+*  Allow unsupported characters in body (# * ; ? @)   
+*  Key signature empty or 'none'
+*  Admit character 'y' as a typeset space
+
+Slurs are not implemented in a way that I like (where you hold the list of slurred notes within a Slur data structure and hence also balance left and right brackets).  This seems to be a limitation in the spec - this is written in a line-oriented fashion, where lines of notes may possibly be interrupted by in-line headers. However, in the wild (and perhaps the spec - it's unclear) slurs may occur across lines.  This means that all that can be easily recognised is the individual brackets '(' and ') that define the slur start and end which are now disconnected from each other in any meaningful data structure.
  
  
 

@@ -73,9 +73,10 @@ tempo : TempoSignature -> String
 tempo t =
   let
     text = withDefault "" (Maybe.map (\s -> " " ++ s) t.marking)
-    eq = if (List.length t.noteLengths == 0)
-      then ""
-      else "="
+    eq = if (List.length t.noteLengths == 0) then 
+           ""
+         else 
+          "="
   in 
     ratlist t.noteLengths
         ++ eq
@@ -103,13 +104,14 @@ meter m =
 
 duration : NoteDuration -> String
 duration nd = 
-  if (denominator nd == 1) && (numerator nd == 1)
-     then ""
-  else if (denominator nd == 2) && (numerator nd == 1)
-     then "/"
-  else if (denominator nd == 1)
-     then toString (numerator nd)
-     else rational nd
+  if (denominator nd == 1) && (numerator nd == 1) then 
+    ""
+  else if (denominator nd == 2) && (numerator nd == 1) then 
+    "/"
+  else if (denominator nd == 1) then 
+    toString (numerator nd)
+  else 
+    rational nd
 
 key : KeySignature -> String
 key k = 
@@ -123,12 +125,12 @@ key k =
 
 octave : Int -> String
 octave i =
-   if ((i == 4) || (i == 5))
-      then ""
+   if ((i == 4) || (i == 5)) then 
+     ""
    else if i > 5 then 
-      repeat (i - 5) "'"
+     repeat (i - 5) "'"
    else
-      repeat (4 - i) ","      
+     repeat (4 - i) ","      
    
 
 abcNote : AbcNote -> String
@@ -159,9 +161,10 @@ rest n =
 
 decorate : String -> String
 decorate s =
-  if (String.length s == 1)
-     then s
-     else "!" ++ s ++ "!"
+  if (String.length s == 1) then 
+    s
+  else 
+    "!" ++ s ++ "!"
     
 musics : List Music-> String
 musics ms = 
@@ -232,9 +235,10 @@ bodyPart bp = case bp of
 
 continuation : Bool -> String
 continuation c = 
-  if c 
-    then "\\"
-    else ""
+  if c then 
+    "\\"
+  else 
+    ""
   
 tuneBody : TuneBody -> String
 tuneBody b = 

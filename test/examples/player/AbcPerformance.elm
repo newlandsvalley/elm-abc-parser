@@ -136,10 +136,11 @@ translateNoteSequence isSeq state notes =
       in
         (duration, toMidiPitch abc, abc.pitchClass)
   in
-    if isSeq
-      then List.map f notes
-            |> List.map (\a -> ANote a)
-      else [AChord (List.map f notes)]
+    if isSeq then 
+       List.map f notes
+         |> List.map (\a -> ANote a)
+    else 
+       [AChord (List.map f notes)]
 
 
 {- not at all complete - translate a Music item from the parse tree to a playable note

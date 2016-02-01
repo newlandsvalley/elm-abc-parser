@@ -121,11 +121,10 @@ viewParseResult ra =
 
 viewResult : Model -> String
 viewResult model =
-  if (model.roundTrip) 
-    then
-      viewAbc (model.transcription |> Abc.Canonical.fromResult)
-    else 
-      viewParseResult model.transcription
+  if (model.roundTrip) then
+    viewAbc (model.transcription |> Abc.Canonical.fromResult)
+  else 
+    viewParseResult model.transcription
 
 view : Signal.Address Action -> Model -> Html
 view address model =
