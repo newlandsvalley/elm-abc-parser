@@ -55,7 +55,7 @@ mToList m = case m of
 
 
 
-{- load a MIDI file -}
+{- load an ABC file -}
 loadAbc : String -> Effects Action
 loadAbc url = 
       let settings =  { defaultSettings | desiredResponseType  = Just "text/plain; charset=utf-8" }   
