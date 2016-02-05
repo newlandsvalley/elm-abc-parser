@@ -17,8 +17,9 @@ module AbcPerformance (  NoteEvent
 -}
 
 import Abc.ParseTree exposing (..)
+import Music.Notation exposing (accidentalImplicitInKey)
 import String exposing (fromChar, toUpper)
-import Maybe exposing (withDefault)
+import Maybe exposing (withDefault, oneOf)
 import Ratio exposing (Rational, over, fromInt, toFloat, add)
 import Dict exposing (Dict, fromList, get)
 
@@ -26,7 +27,7 @@ type alias AccumulatedTime = Float
 type alias NoteDuration = Float
 type alias MidiPitch = Int
 
-{-| a Note Event -}    
+{-| a Note Event (no pitch class implies a rest) -}    
 type alias SingleNote = (NoteDuration, MidiPitch, Maybe PitchClass)
 
 type NoteEvent =
@@ -47,11 +48,14 @@ type alias AbcTempo =
     }
 
 type alias TranslationState = 
-   { tempo : AbcTempo
+   { keySignature : KeySignature
+   , tempo : AbcTempo
    , tempoModifier : Float
    }
 
-{- lookup for providing offsets from C in a chromatic scale -}
+{- lookup for providing offsets from C in a chromatic scale 
+   we have to translate a KeyClass to a string because otherwise
+   it can't be used as a Dict key -}
 chromaticScale : Dict String Int
 chromaticScale =
   Dict.fromList
@@ -76,23 +80,27 @@ chromaticScale =
 
 
 {- convert an AbcNote (pich class and accidental) to a pitch offset in a chromatic scale -}
-midiPitchOffset : AbcNote -> Int
-midiPitchOffset n =
+midiPitchOffset : AbcNote -> KeySignature -> Int
+midiPitchOffset n ks =
   let 
+    inKeyAccidental = accidentalImplicitInKey n ks
+    -- look first for an explicit then for an implicit accidental attached to this key class
+    maybeAccidental = oneOf [n.accidental, inKeyAccidental]
     f a = case a of
       Sharp -> "#"
       Flat -> "b"
       _ -> ""
-    accidental = withDefault "" (Maybe.map f n.accidental)
+    accidental = withDefault "" (Maybe.map f maybeAccidental)
     pattern = (toString n.pitchClass) ++ accidental
   in
     withDefault 0 (Dict.get pattern chromaticScale)
 
 {- convert an ABC note pitch to a MIDI pitch -}
-toMidiPitch : AbcNote -> MidiPitch
-toMidiPitch n =
-  (n.octave * 12) + midiPitchOffset n
+toMidiPitch : AbcNote -> KeySignature -> MidiPitch
+toMidiPitch n ks =
+  (n.octave * 12) + midiPitchOffset n ks
 
+-- default to 1/4=120
 defaultTempo : AbcTempo
 defaultTempo = 
   {  tempoNoteLength = over 1 4
@@ -100,6 +108,15 @@ defaultTempo =
   ,  unitNoteLength = over 1 8
   }
 
+-- default to C Major
+defaultKey : KeySignature
+defaultKey = 
+  { pitchClass = C
+  , accidental = Nothing
+  , mode = Major
+  } 
+
+-- get the tempo from the tune header
 getHeaderTempo : AbcTempo -> TuneHeaders -> AbcTempo
 getHeaderTempo a =
   let
@@ -116,6 +133,7 @@ getHeaderTempo a =
   in
     List.foldr f a
 
+-- translate a tempo and unit note length to a real worls note duration
 noteDuration : AbcTempo -> Rational -> NoteDuration
 noteDuration t n = 
    (60.0 * (Ratio.toFloat t.unitNoteLength)) / 
@@ -133,7 +151,7 @@ translateNoteSequence isSeq state notes =
       let 
         duration = (noteDuration state.tempo abc.duration) * state.tempoModifier
       in
-        (duration, toMidiPitch abc, Just abc.pitchClass)
+        (duration, toMidiPitch abc state.keySignature, Just abc.pitchClass)
   in
     if isSeq then 
        List.map f notes
@@ -154,7 +172,7 @@ translateMusic m acc =
       Note abc -> 
         let 
           duration = (noteDuration state.tempo abc.duration) * state.tempoModifier
-          line = ANote (duration, toMidiPitch abc, Just abc.pitchClass) :: melodyLine
+          line = ANote (duration, toMidiPitch abc state.keySignature, Just abc.pitchClass) :: melodyLine
         in
           (line, state)
       Rest r -> 
@@ -166,7 +184,7 @@ translateMusic m acc =
       Tuplet signature notes ->
         let 
           (p,q,r) = signature
-          newState = {tempo = state.tempo, tempoModifier = ( Basics.toFloat q / Basics.toFloat p)}
+          newState = { state | tempoModifier = ( Basics.toFloat q / Basics.toFloat p) }
           tuplet = translateNoteSequence True newState notes
           line = List.append tuplet melodyLine         
         in 
@@ -179,6 +197,7 @@ translateMusic m acc =
           (line, state)
       _ -> acc
 
+-- translate an entire melody line from the tune body (up to an end of line)
 toMelodyLine : TranslationState -> MusicLine -> MelodyLine
 toMelodyLine state ml =
   let
@@ -193,7 +212,7 @@ toMelodyLine state ml =
 fromAbc : AbcTune -> AbcPerformance
 fromAbc tune =   
   let
-    acc = { tempo = defaultTempo, tempoModifier = 1.0}
+    acc = { keySignature = defaultKey, tempo = defaultTempo, tempoModifier = 1.0}
     f bp = case bp of
       Score musicLine continuation ->
          toMelodyLine acc musicLine

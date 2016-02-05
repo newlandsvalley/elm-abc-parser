@@ -2,6 +2,7 @@ module Music.Notation
   ( KeyClass
   , keySet
   , scale
+  , accidentalImplicitInKey
   ) where
 
 {-|  Helper functions for making more musical sense of the parse tree
@@ -12,7 +13,7 @@ module Music.Notation
 @docs KeyClass
 
 # Functions
-@docs keySet, scale
+@docs keySet, scale, accidentalImplicitInKey
 
 -}
 
@@ -20,7 +21,7 @@ import List.Extra exposing (getAt, splitAt, elemIndex, tails)
 import List exposing (member)
 import Maybe exposing (withDefault)
 import String exposing (contains, endsWith, fromChar)
-import Abc.ParseTree exposing (Mode (..), Accidental (..), KeySignature, PitchClass (..))
+import Abc.ParseTree exposing (Mode (..), Accidental (..), KeySignature, PitchClass (..), AbcNote)
 
 {-| a complete pitch class (the white note and the accidental) -}
 type alias KeyClass = (PitchClass, Maybe Accidental)
@@ -37,13 +38,13 @@ type alias Intervals = List Int
 
 -- EXPORTED FUNCTIONS
     
-{-| return the set of keys (pitches) that comprise the key signature -}
+{-| return the set of keys (pitch classes) that comprise the key signature -}
 keySet : KeySignature -> KeySet
 keySet ks =  
   scale ks
      |> List.filter accidentalKey
 
-{-| return the set of pitches that comprise a complete 11-note scale -}
+{-| return the set of keys (pitche classes) that comprise a complete 11-note scale -}
 scale : KeySignature -> Scale
 scale ks =
   let 
@@ -56,6 +57,22 @@ scale ks =
         majorScale target
       m ->
         modalScale target ks.mode
+
+{-| return an accidental if it is implicitly there in the key signature 
+    attached to the pitch class of the note -}
+accidentalImplicitInKey : AbcNote -> KeySignature -> Maybe Accidental
+accidentalImplicitInKey n ks  =
+  let
+    keys = keySet ks
+    sharpTarget = (n.pitchClass, Just Sharp)
+    flatTarget = (n.pitchClass, Just Flat)
+  in
+    if (member sharpTarget keys) then
+      Just Sharp
+    else if  (member flatTarget keys) then
+      Just Flat
+    else
+      Nothing
 
 -- implementation
 
