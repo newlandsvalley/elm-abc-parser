@@ -16,6 +16,7 @@ Dependencies
 *  Bogdanp/elm-combine 2.0.0
 *  imeckler/ratio 2.0.0
 *  circuithub/elm-maybe-extra 1.6.0
+*  circuithub/elm-list-extra 3.9.0
 *  elm-lang/core 3.0.0
 
 Limitations

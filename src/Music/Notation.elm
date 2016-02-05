@@ -1,5 +1,6 @@
 module Music.Notation
-  ( keySet
+  ( KeyClass
+  , keySet
   , scale
   ) where
 
@@ -8,7 +9,7 @@ module Music.Notation
 # Definition
 
 # Data Types
-@docs PC
+@docs KeyClass
 
 # Functions
 @docs keySet, scale
@@ -21,16 +22,42 @@ import Maybe exposing (withDefault)
 import String exposing (contains, endsWith, fromChar)
 import Abc.ParseTree exposing (Mode (..), Accidental (..), KeySignature, PitchClass (..))
 
-type alias PC = (PitchClass, Maybe Accidental)
+{-| a complete pitch class (the white note and the accidental) -}
+type alias KeyClass = (PitchClass, Maybe Accidental)
 
-type alias ChromaticScale = List PC
+type alias ChromaticScale = List KeyClass
 
-type alias Scale = List PC
+type alias Scale = List KeyClass
 
 {- the set of accidentals in a key signature -}
-type alias KeySet = List PC
+type alias KeySet = List KeyClass
 
 type alias Intervals = List Int
+
+
+-- EXPORTED FUNCTIONS
+    
+{-| return the set of keys (pitches) that comprise the key signature -}
+keySet : KeySignature -> KeySet
+keySet ks =  
+  scale ks
+     |> List.filter accidentalKey
+
+{-| return the set of pitches that comprise a complete 11-note scale -}
+scale : KeySignature -> Scale
+scale ks =
+  let 
+    target = (ks.pitchClass, ks.accidental)
+  in
+    case ks.mode of 
+      Major -> 
+        majorScale target
+      Ionian -> 
+        majorScale target
+      m ->
+        modalScale target ks.mode
+
+-- implementation
 
 {- works from C major up to B major but not beyond 
    (F# major requires F->E#, C# major also requires C->B#)
@@ -93,7 +120,7 @@ extremeFlatScale =
 
 
 {- enharmonic equivalence - don't use bizarre sharp keys when we have reasonable flat ones -}
-equivalentEnharmonic : PC -> PC
+equivalentEnharmonic : KeyClass -> KeyClass
 equivalentEnharmonic k = 
   case k of 
    (A, Just Sharp) -> (B, Just Flat)
@@ -107,17 +134,14 @@ majorIntervals = [2,2,1,2,2,2,1]
 
  
 -- rotate the chromatic scale, starting from the supplied target character
-rotateFrom : PC -> ChromaticScale -> ChromaticScale
+rotateFrom : KeyClass -> ChromaticScale -> ChromaticScale
 rotateFrom target scale =
   let
     index = elemIndex target scale
              |> withDefault 0
     listPair = splitAt index scale
   in
-    List.append (snd listPair) (fst listPair)
-
-
-   
+    List.append (snd listPair) (fst listPair)   
 
 -- rotate an interval pattern to the left by the given amount
 rotateLeftBy : Int -> Intervals -> Intervals
@@ -136,14 +160,14 @@ partialSum l =
     |> List.reverse
     |> List.take (List.length l)  
 
-    
-lookUp : ChromaticScale -> Int -> PC
+-- find the pitch class at a given position in the scale   
+lookUp : ChromaticScale -> Int -> KeyClass
 lookUp s i =
   getAt s i
     |> withDefault (C, Nothing)
     
-    
-majorScale : PC -> Scale
+-- provide the Major scale for the pitch class  
+majorScale : KeyClass -> Scale
 majorScale target =
   let
     chromaticScale =
@@ -159,8 +183,8 @@ majorScale target =
   in
     List.map f (partialSum majorIntervals)
 
-
-modalScale : PC -> Mode -> Scale
+-- provide a Modal scale for the pitch class
+modalScale : KeyClass -> Mode -> Scale
 modalScale target mode =
   let
     distance = case mode of  -- the distance to move right round the major scale
@@ -179,21 +203,8 @@ modalScale target mode =
   in 
     majorScale (equivalentEnharmonic majorKey)  
 
-scale : KeySignature -> Scale
-scale ks =
-  let 
-    target = (ks.pitchClass, ks.accidental)
-  in
-    case ks.mode of 
-      Major -> 
-        majorScale target
-      Ionian -> 
-        majorScale target
-      m ->
-        modalScale target ks.mode
-
 {- return true if the key contains an accidental -}
-accidentalKey : PC -> Bool
+accidentalKey : KeyClass -> Bool
 accidentalKey k =
   let 
     (pc, acc) = k
@@ -201,14 +212,9 @@ accidentalKey k =
     case acc of
       Nothing -> False
       _ -> True
-    
-keySet : KeySignature -> KeySet
-keySet ks =  
-  scale ks
-     |> List.filter accidentalKey
 
- 
-isFlatMajorKey : PC -> Bool
+{- return true if the key represents a flat major key -} 
+isFlatMajorKey : KeyClass -> Bool
 isFlatMajorKey target = 
   let
      (pc, accidental) = target
