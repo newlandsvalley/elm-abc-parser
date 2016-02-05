@@ -15,7 +15,7 @@ module Abc.Canonical
 import Abc.ParseTree exposing (..)
 import Ratio exposing (Rational, numerator, denominator)
 import Maybe exposing (withDefault)
-import String exposing (fromChar, fromList, repeat, trimRight)
+import String exposing (fromChar, fromList, repeat, trimRight, toLower)
 
 enquote : String -> String
 enquote s = "\"" ++ s ++ "\""
@@ -118,10 +118,8 @@ key k =
    let
      acc = Maybe.map headerAccidental k.accidental
            |> withDefault ""
-     md = Maybe.map mode k.mode 
-           |> withDefault ""
    in
-     k.keyClass ++ acc  ++ md
+     toString k.pitchClass ++ acc ++ toString k.mode
 
 octave : Int -> String
 octave i =
@@ -131,6 +129,13 @@ octave i =
      repeat (i - 5) "'"
    else
      repeat (4 - i) ","      
+
+pitch : Int -> PitchClass -> String
+pitch octave p =
+  if (octave >= 5) then
+    toLower (toString p)
+  else
+    toString p
    
 
 abcNote : AbcNote -> String
@@ -143,7 +148,7 @@ abcNote a =
        _ -> ""
   in
      acc
-     ++ String.fromChar a.pitchClass
+     ++ pitch a.octave a.pitchClass
      ++ octave a.octave
      ++ duration a.duration
      ++ tie

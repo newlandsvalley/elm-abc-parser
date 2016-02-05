@@ -27,7 +27,7 @@ type alias NoteDuration = Float
 type alias MidiPitch = Int
 
 {-| a Note Event -}    
-type alias SingleNote = (NoteDuration, MidiPitch, Char)
+type alias SingleNote = (NoteDuration, MidiPitch, Maybe PitchClass)
 
 type NoteEvent =
      ANote SingleNote
@@ -84,8 +84,7 @@ midiPitchOffset n =
       Flat -> "b"
       _ -> ""
     accidental = withDefault "" (Maybe.map f n.accidental)
-    pattern = (String.fromChar n.pitchClass
-                |> toUpper) ++ accidental
+    pattern = (toString n.pitchClass) ++ accidental
   in
     withDefault 0 (Dict.get pattern chromaticScale)
 
@@ -134,7 +133,7 @@ translateNoteSequence isSeq state notes =
       let 
         duration = (noteDuration state.tempo abc.duration) * state.tempoModifier
       in
-        (duration, toMidiPitch abc, abc.pitchClass)
+        (duration, toMidiPitch abc, Just abc.pitchClass)
   in
     if isSeq then 
        List.map f notes
@@ -155,13 +154,13 @@ translateMusic m acc =
       Note abc -> 
         let 
           duration = (noteDuration state.tempo abc.duration) * state.tempoModifier
-          line = ANote (duration, toMidiPitch abc, abc.pitchClass) :: melodyLine
+          line = ANote (duration, toMidiPitch abc, Just abc.pitchClass) :: melodyLine
         in
           (line, state)
       Rest r -> 
         let 
           duration = (noteDuration state.tempo r) * state.tempoModifier
-          line = ANote (duration, 0, 'z') :: melodyLine 
+          line = ANote (duration, 0, Nothing) :: melodyLine 
         in        
           (line, state)
       Tuplet signature notes ->

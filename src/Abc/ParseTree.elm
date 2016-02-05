@@ -15,6 +15,7 @@ module Abc.ParseTree
     , TupletSignature
     , Mode (..)
     , Accidental (..)
+    , PitchClass (..)
     ) where
 
 {-|  The ABC parser and ABC notation tree
@@ -38,6 +39,7 @@ module Abc.ParseTree
     , TupletSignature
     , Mode
     , Accidental
+    , PitchClass
 
 # Functions
 
@@ -65,7 +67,7 @@ type alias MusicLine = List Music
 
 {-| a Note -}
 type alias AbcNote =
-  {  pitchClass : Char
+  {  pitchClass : PitchClass
   ,  accidental : Maybe Accidental
   ,  octave : Int
   ,  duration : NoteDuration
@@ -116,12 +118,22 @@ type Accidental =
   | DoubleFlat
   | Natural
 
+{-| An white note on the piano -}
+type PitchClass =
+    A 
+  | B
+  | C
+  | D
+  | E
+  | F
+  | G
+
 
 {-| a Key Signature -}
 type alias KeySignature = 
-  { keyClass : String
+  { pitchClass : PitchClass
   , accidental : Maybe Accidental
-  , mode : Maybe Mode
+  , mode : Mode
   } 
 
 {-| a Meter Signature - e.g. 3/4 -}

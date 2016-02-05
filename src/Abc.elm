@@ -22,7 +22,9 @@ import Char exposing (fromCode, toCode, isUpper)
 import Debug exposing (..)
 import Maybe exposing (withDefault)
 import Maybe.Extra exposing (join)
+import Dict exposing (Dict, get)
 import Result exposing (Result)
+import Regex exposing (Regex, contains)
 import Abc.ParseTree exposing (..)
 
 
@@ -222,6 +224,7 @@ noteDuration = rational <* whiteSpace
 -}
 tempoSignature : Parser TempoSignature
 tempoSignature = buildTempoSignature <$> maybe quotedString <*> many headerRational <*> maybe (char '=') <*> int <*> maybe quotedString
+
 
 -- accidental in a key signature (these use a different representation from accidentals in the tune body
 sharpOrFlat : Parser Accidental
@@ -488,18 +491,12 @@ note : Parser Music
 note = Note <$> abcNote
 
 abcNote : Parser AbcNote
-abcNote = buildNote <$> maybeAccidental <*> keyClass <*> moveOctave <*> maybe noteDur <*> maybeTie
+abcNote = buildNote <$> maybeAccidental <*> pitch <*> moveOctave <*> maybe noteDur <*> maybeTie
 
-{- an upper or lower case note ([A-Ga-g]) 
-   done this way rather than a regex to get a more tractable Char result and not a String
--}
-keyClass : Parser Char
-keyClass =
-  let
-    f a = (toCode a >= 65 && toCode a <= 71)
-          || (toCode a >= 97 && toCode a <= 103)
-  in 
-    satisfy f 
+{- an upper or lower case note ([A-Ga-g]) -}
+pitch : Parser String
+pitch =
+  regex "[A-Ga-g]"
 
 -- maybe an accidental defining a note's pitch
 maybeAccidental : Parser (Maybe String)
@@ -652,36 +649,57 @@ buildTempoSignature ms1 fs c i ms2 =
     , marking = ms
     }
 
+{- Dictionary for PitchClass -}
+pitchClassDict : Dict String PitchClass
+pitchClassDict =
+  Dict.fromList
+    [ ("A", A),
+      ("B", B),
+      ("C", C), 
+      ("D", D),
+      ("E", E),
+      ("F", F),
+      ("G", G)
+     ]
+
+lookupPitch : String -> PitchClass
+lookupPitch p =
+  Dict.get p pitchClassDict
+    |> withDefault C 
+
+
 -- build a key signature
 buildKeySignature : String -> Maybe Accidental -> Maybe Mode -> KeySignature
-buildKeySignature kc ma mm =
-  { keyClass = kc, accidental = ma, mode = mm }
+buildKeySignature pStr ma mm =
+  { pitchClass = lookupPitch pStr, accidental = ma, mode = withDefault Major mm }
 
 {- build a bar line (i.e. a separation  between bars) -}
 buildBarline : String -> Maybe Int -> Music
 buildBarline s i = Barline { separator = s, iteration = i }
-          
-buildNote : Maybe String -> Char -> Int -> Maybe Rational -> Maybe Char -> AbcNote
-buildNote macc c octave ml mt = 
+
+  
+buildNote : Maybe String -> String -> Int -> Maybe Rational -> Maybe Char -> AbcNote
+buildNote macc pitchStr octave ml mt = 
    let 
      l = withDefault (Ratio.fromInt 1) ml
      a = buildAccidental macc
-     spn = scientificPitchNotation c octave
+     p = lookupPitch (String.toUpper pitchStr)
+     spn = scientificPitchNotation pitchStr octave
      tied = case mt of
         Just _ -> True
         _ -> False
    in 
-     { pitchClass = c, accidental = a, octave = spn, duration = l, tied = tied }
+     { pitchClass = p, accidental = a, octave = spn, duration = l, tied = tied }
 
 {- investigate a note/octave pair and return the octave
    in scientific pitch notation (middle C = 4)
 -}
-scientificPitchNotation : Char -> Int -> Int
-scientificPitchNotation keyClass oct =
-   if isUpper keyClass then  -- key class inhabits octave of middle C, oct <= 0
-      4 + oct
-   else                      -- key class inhabits octave above middle C, oct >= 0
-      5 + oct
+scientificPitchNotation : String -> Int -> Int
+scientificPitchNotation pc oct =
+  if (contains (Regex.regex "[A-G]")) pc then  -- pitch class inhabits octave of middle C, oct <= 0
+    4 + oct
+  else                                         -- pitch class inhabits octave above middle C, oct >= 0
+    5 + oct
 
 buildAccidental : Maybe String -> Maybe Accidental
 buildAccidental ms = case ms of
