@@ -100,6 +100,7 @@ extremeSharpScale : ChromaticScale
 extremeSharpScale =
    let 
      f pc = case pc of
+       (F, Nothing) -> (E, Just Sharp)
        (C, Nothing) -> (B, Just Sharp)
        _ -> pc
    in
@@ -131,6 +132,7 @@ extremeFlatScale =
    let 
      f pc = case pc of
        (E, Nothing) -> (F, Just Flat)
+       (B, Nothing) -> (C, Just Flat)
        _ -> pc
    in
      List.map f flatScale
@@ -211,7 +213,7 @@ modalScale target mode =
       Lydian -> 7
       Mixolydian -> 5
       Aeolian -> 3
-      Locrian -> 2
+      Locrian -> 1
       _ -> 0  
     index = elemIndex target sharpScale
              |> withDefault 0
