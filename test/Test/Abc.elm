@@ -71,11 +71,17 @@ tests =
         , test "chord symbols" (assertRoundTrip chordSymbols)
         , test "chords" (assertRoundTrip chords)
         , test "articulation" (assertRoundTrip articulation)
+        ]   
+    structure = 
+      suite "structure"
+        [ test "inline" (assertRoundTrip inline)
+        , test "inlineComment" (assertRoundTrip inlineComment)
         ]
   in
     suite "Music Notation"
       [  header
       ,  tune
+      ,  structure
       ]
 
 -- these ABC samples must already be in canonical format for round-tripping to work
@@ -120,6 +126,10 @@ wordsBefore = "w: doh re mi fa\r\n| ABC |\r\n"
 reference = "X: 125\r\n| ABC |\r\n"
 transcriber = "Z: John Watson\r\n| ABC |\r\n"
 comment = "%%TBL:{\"version\":\"beta\",\"type\":\"tune\",\"id\":\"10294\"}\r\n| ABC |\r\n"
+
+
+inline = "| ABC z2 def z/ \r\nQ: 1/4=120\r\n| ABC z2 def z/ |\r\n"
+inlineComment = "| ABC z2 def z/ \r\n%% this is a comment\r\n| ABC z2 def z/ |\r\n"
 
 
 
