@@ -137,6 +137,9 @@ view address model =
               button [ onClick address (Load "abc/justnotes.abc") ] [ text "just notes" ]
               ]
       , li [] [
+              button [ onClick address (Load "abc/octaves.abc") ] [ text "octaves" ]
+              ]
+      , li [] [
               button [ onClick address (Load "abc/lillasystern.abc") ] [ text "lillasystern" ]
               ]
       , li [] [

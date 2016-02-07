@@ -7,11 +7,14 @@ import Console exposing (IO, run)
 import Task
 
 import Test.Music as Music
+import Test.Abc as Abc
 
 all : Test
 all =
     suite "ABC parser tests"
-    [ Music.tests
+    [ 
+      Abc.tests
+    , Music.tests
     ]
 
 console : IO ()

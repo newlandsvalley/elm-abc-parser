@@ -42,9 +42,9 @@ bar b =
 accidental : Accidental -> String
 accidental a = case a of
   Sharp -> "^"
-  Flat -> "b"
+  Flat -> "_"
   DoubleSharp -> "^^"
-  DoubleFlat -> "bb"
+  DoubleFlat -> "__"
   Natural -> "="
   
 headerAccidental : Accidental -> String
