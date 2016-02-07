@@ -17,7 +17,7 @@ module AbcPerformance (  NoteEvent
 -}
 
 import Abc.ParseTree exposing (..)
-import Music.Notation exposing (accidentalImplicitInKey)
+import Music.Notation exposing (accidentalImplicitInKey, dotFactor)
 import String exposing (fromChar, toUpper)
 import Maybe exposing (withDefault, oneOf)
 import Ratio exposing (Rational, over, fromInt, toFloat, add)
@@ -55,7 +55,9 @@ type alias TranslationState =
 
 {- lookup for providing offsets from C in a chromatic scale 
    we have to translate a KeyClass to a string because otherwise
-   it can't be used as a Dict key -}
+   it can't be used as a Dict key.  This is a problem in Elm -
+   user-defined types should be attributable to a 'pseudo'
+   type class of comparable -}
 chromaticScale : Dict String Int
 chromaticScale =
   Dict.fromList
@@ -133,7 +135,7 @@ getHeaderTempo a =
   in
     List.foldr f a
 
--- translate a tempo and unit note length to a real worls note duration
+-- translate a tempo and unit note length to a real world note duration
 noteDuration : AbcTempo -> Rational -> NoteDuration
 noteDuration t n = 
    (60.0 * (Ratio.toFloat t.unitNoteLength)) / 
@@ -159,6 +161,16 @@ translateNoteSequence isSeq state notes =
     else 
        [AChord (List.map f notes)]
 
+{- translate a pair of notes, each working under a separate state -}
+translateNotePair : AbcNote -> TranslationState -> AbcNote -> TranslationState -> MelodyLine -> MelodyLine
+translateNotePair n1 s1 n2 s2 ml =
+  let      
+    duration1 = (noteDuration s1.tempo n1.duration) * s1.tempoModifier
+    duration2 = (noteDuration s2.tempo n2.duration) * s2.tempoModifier
+    note1 = ANote (duration1, toMidiPitch n1 s1.keySignature, Just n1.pitchClass) 
+    note2 = ANote (duration2, toMidiPitch n2 s2.keySignature, Just n2.pitchClass) 
+  in
+    (note1 :: note2 :: ml)
 
 {- not at all complete - translate a Music item from the parse tree to a playable note
    (note duration and MIDI pitch) 
@@ -189,6 +201,20 @@ translateMusic m acc =
           line = List.append tuplet melodyLine         
         in 
           (line, state)
+      BrokenRhythmPair n1 b n2 ->     
+        case b of 
+          LeftArrow i ->
+            let
+              leftState =  { state | tempoModifier = ( 1 - dotFactor i) }
+              rightState =  { state | tempoModifier = ( 1 + dotFactor i) }
+            in
+              (translateNotePair n1 leftState n2 rightState melodyLine, state)
+          RightArrow i ->
+            let
+              leftState =  { state | tempoModifier = ( 1 + dotFactor i) }
+              rightState =  { state | tempoModifier = ( 1 - dotFactor i) }
+            in
+              (translateNotePair n1 leftState n2 rightState melodyLine, state)
       Chord notes ->
         let 
           chord = translateNoteSequence False state notes

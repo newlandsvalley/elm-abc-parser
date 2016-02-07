@@ -3,6 +3,7 @@ module Music.Notation
   , keySet
   , scale
   , accidentalImplicitInKey
+  , dotFactor
   ) where
 
 {-|  Helper functions for making more musical sense of the parse tree
@@ -13,7 +14,7 @@ module Music.Notation
 @docs KeyClass
 
 # Functions
-@docs keySet, scale, accidentalImplicitInKey
+@docs keySet, scale, accidentalImplicitInKey, dotFactor
 
 -}
 
@@ -73,6 +74,20 @@ accidentalImplicitInKey n ks  =
       Just Flat
     else
       Nothing
+
+{-| the amount by which you increase the duration of a (multiply) dotted note 
+   i.e. duration of a note dotted by x is multiplied by:
+      1 + dotFactor x
+   and of one symmetrically reduced is
+      1 - dotfactor x
+-}
+dotFactor : Int -> Float
+dotFactor i =
+  case i of 
+    1 -> 0.5 
+    2 -> 0.75 
+    3 -> 0.875 
+    _ -> 0
 
 -- implementation
 
@@ -241,6 +256,8 @@ isFlatMajorKey target =
     case accidental of
       Nothing -> (pc == F)
       Just a -> (a == Flat)
+
+
 
 
       
