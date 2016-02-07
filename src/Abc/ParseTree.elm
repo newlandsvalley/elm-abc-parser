@@ -16,6 +16,7 @@ module Abc.ParseTree
     , Mode (..)
     , Accidental (..)
     , PitchClass (..)
+    , Broken(..)
     ) where
 
 {-|  The ABC parser and ABC notation tree
@@ -40,6 +41,7 @@ module Abc.ParseTree
     , Mode
     , Accidental
     , PitchClass
+    , Broken
 
 # Functions
 
@@ -78,7 +80,7 @@ type alias AbcNote =
 type Music 
   = Barline Bar
   | Note AbcNote
-  | BrokenRhythmPair AbcNote String AbcNote
+  | BrokenRhythmPair AbcNote Broken AbcNote
   | Rest NoteDuration
   | Tuplet TupletSignature (List AbcNote)
   | Decoration String
@@ -156,6 +158,11 @@ type alias NoteDuration = Rational
     put p notes into the time of q the next r notes
 -}
 type alias TupletSignature = (Int, Int, Int)
+
+{-| A broken rhythm operator one or more < or > -}
+type Broken =
+    LeftArrow Int
+  | RightArrow Int
 
 
 {-| an ABC Tune Header -}

@@ -177,12 +177,20 @@ musics ms =
     f m acc = (music m) ++ acc
   in
     List.foldr f "" ms      
+
+broken : Broken -> String
+broken b = 
+  case b of 
+    LeftArrow i -> 
+      String.repeat i "<"
+    RightArrow i -> 
+      String.repeat i ">"
      
 music : Music -> String
 music m = case m of
    Barline b -> bar b
    Note a -> abcNote a
-   BrokenRhythmPair a1 s a2 -> abcNote a1 ++ s ++ abcNote a2
+   BrokenRhythmPair a1 b a2 -> abcNote a1 ++ (broken b) ++ abcNote a2
    Rest r -> rest r
    Tuplet tup ns -> tuplet tup ++ notes ns
    Decoration s -> decorate s

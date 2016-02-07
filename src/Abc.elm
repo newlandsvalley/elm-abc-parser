@@ -109,8 +109,8 @@ slur = rec <| \() ->
 -}
 
 
-brokenRhythmTie : Parser String
-brokenRhythmTie  = regex "(<+|>+)"
+brokenRhythmTie : Parser Broken
+brokenRhythmTie  = buildBrokenOperator <$> regex "(<+|>+)"
 
 brokenRhythmPair : Parser Music
 brokenRhythmPair = BrokenRhythmPair <$> abcNote <*> brokenRhythmTie <*> abcNote
@@ -733,6 +733,14 @@ buildTupletSignature ps mq mr =
     r = withDefault p (Maybe.map toTupletInt mr)
   in
     (p,q,r)
+
+buildBrokenOperator : String -> Broken
+buildBrokenOperator s =
+  if String.startsWith "<" s then
+    LeftArrow (String.length s)
+  else
+    RightArrow (String.length s)
+
 
 toTupletInt : String -> Int
 toTupletInt s =
