@@ -223,7 +223,7 @@ noteDuration = rational <* whiteSpace
    120  (which means 1/4=120)
 -}
 tempoSignature : Parser TempoSignature
-tempoSignature = buildTempoSignature <$> maybe quotedString <*> many headerRational <*> maybe (char '=') <*> int <*> maybe quotedString
+tempoSignature = buildTempoSignature <$> maybe trimmedQuotedString <*> many headerRational <*> maybe (char '=') <*> int <*> maybe trimmedQuotedString
 
 
 -- accidental in a key signature (these use a different representation from accidentals in the tune body
@@ -470,9 +470,13 @@ endLine = withDefault False <$> maybe continuation <* regex "(\r\n|\n|\r)"
 headerCode : Char -> Parser Char
 headerCode c = char c <* char ':' <* whiteSpace
 
+trimmedQuotedString : Parser String
+trimmedQuotedString =
+  whiteSpace *> quotedString <* whiteSpace
+
 quotedString : Parser String
 quotedString = 
-   whiteSpace *> string "\"" *> regex "(\\\\\"|[^\"\n])*" <* string "\"" <* whiteSpace
+    string "\"" *> regex "(\\\\\"|[^\"\n])*" <* string "\"" 
       <?> "quoted string"
 
 {- parse a remaining string up to but not including the end of line -}

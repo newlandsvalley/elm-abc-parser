@@ -72,7 +72,7 @@ tuplet t =
 tempo : TempoSignature -> String
 tempo t =
   let
-    text = withDefault "" (Maybe.map (\s -> " " ++ s) t.marking)
+    text = withDefault "" (Maybe.map (\s -> " " ++ (enquote s)) t.marking)
     eq = if (List.length t.noteLengths == 0) then 
            ""
          else 
