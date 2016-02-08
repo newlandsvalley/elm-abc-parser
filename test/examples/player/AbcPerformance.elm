@@ -1,5 +1,4 @@
 module AbcPerformance (  NoteEvent
-                       , AbcTempo
                        , AbcPerformance
                        , fromAbc
                        ) where
@@ -9,7 +8,7 @@ module AbcPerformance (  NoteEvent
 # Definition
 
 # Data Types
-@docs NoteEvent, AbcTempo, AbcPerformance
+@docs NoteEvent, AbcPerformance
 
 # Functions
 @docs fromAbc
@@ -17,18 +16,14 @@ module AbcPerformance (  NoteEvent
 -}
 
 import Abc.ParseTree exposing (..)
-import Music.Notation exposing (accidentalImplicitInKey, dotFactor)
+import Music.Notation exposing (..)
 import String exposing (fromChar, toUpper)
-import Maybe exposing (withDefault, oneOf)
 import Ratio exposing (Rational, over, fromInt, toFloat, add)
-import Dict exposing (Dict, fromList, get)
 
 type alias AccumulatedTime = Float
-type alias NoteDuration = Float
-type alias MidiPitch = Int
 
 {-| a Note Event (no pitch class implies a rest) -}    
-type alias SingleNote = (NoteDuration, MidiPitch, Maybe PitchClass)
+type alias SingleNote = (NoteTime, MidiPitch, Maybe PitchClass)
 
 type NoteEvent =
      ANote SingleNote
@@ -37,15 +32,7 @@ type NoteEvent =
 type alias MelodyLine = List NoteEvent
 
 {-| AbcPerformance -}    
-type alias AbcPerformance = List MelodyLine
- 
-
-{-| Abc Performance -}
-type alias AbcTempo = 
-    { tempoNoteLength : Rational
-    , bpm : Int
-    , unitNoteLength : Rational
-    }
+type alias AbcPerformance = List MelodyLine 
 
 type alias TranslationState = 
    { keySignature : KeySignature
@@ -53,54 +40,6 @@ type alias TranslationState =
    , tempoModifier : Float
    }
 
-{- lookup for providing offsets from C in a chromatic scale 
-   we have to translate a KeyClass to a string because otherwise
-   it can't be used as a Dict key.  This is a problem in Elm -
-   user-defined types should be attributable to a 'pseudo'
-   type class of comparable -}
-chromaticScale : Dict String Int
-chromaticScale =
-  Dict.fromList
-    [ ("C", 0), 
-      ("C#", 1),
-      ("Db", 1),
-      ("D", 2),
-      ("D#", 3),
-      ("Eb", 3),
-      ("E", 4),
-      ("F", 5),
-      ("F#", 6),
-      ("Gb", 6),
-      ("G", 7),
-      ("G#", 8),
-      ("Ab", 8),
-      ("A", 9),
-      ("A#",10),
-      ("Bb",10),
-      ("B", 11)
-     ]
-
-
-{- convert an AbcNote (pich class and accidental) to a pitch offset in a chromatic scale -}
-midiPitchOffset : AbcNote -> KeySignature -> Int
-midiPitchOffset n ks =
-  let 
-    inKeyAccidental = accidentalImplicitInKey n ks
-    -- look first for an explicit then for an implicit accidental attached to this key class
-    maybeAccidental = oneOf [n.accidental, inKeyAccidental]
-    f a = case a of
-      Sharp -> "#"
-      Flat -> "b"
-      _ -> ""
-    accidental = withDefault "" (Maybe.map f maybeAccidental)
-    pattern = (toString n.pitchClass) ++ accidental
-  in
-    withDefault 0 (Dict.get pattern chromaticScale)
-
-{- convert an ABC note pitch to a MIDI pitch -}
-toMidiPitch : AbcNote -> KeySignature -> MidiPitch
-toMidiPitch n ks =
-  (n.octave * 12) + midiPitchOffset n ks
 
 -- default to 1/4=120
 defaultTempo : AbcTempo
@@ -135,17 +74,7 @@ getHeaderTempo a =
   in
     List.foldr f a
 
--- translate a tempo and unit note length to a real world note duration
-noteDuration : AbcTempo -> Rational -> NoteDuration
-noteDuration t n = 
-   (60.0 * (Ratio.toFloat t.unitNoteLength)) / 
-    ((Ratio.toFloat t.tempoNoteLength) * (Basics.toFloat t.bpm)) * 
-     (Ratio.toFloat n)
 
-{- translate a sequence of ABC notes which can be done either in series
-   (i.e. the Melody Line is a note sequence] or in parallel (i.e. the
-   melody line contains a single chord
--} 
 translateNoteSequence : Bool -> TranslationState -> List AbcNote -> MelodyLine
 translateNoteSequence isSeq state notes =
   let

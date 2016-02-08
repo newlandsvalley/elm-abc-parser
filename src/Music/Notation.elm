@@ -1,9 +1,14 @@
 module Music.Notation
   ( KeyClass
+  , MidiPitch
+  , AbcTempo
+  , NoteTime
   , keySet
   , scale
   , accidentalImplicitInKey
   , dotFactor
+  , toMidiPitch
+  , noteDuration
   ) where
 
 {-|  Helper functions for making more musical sense of the parse tree
@@ -11,18 +16,20 @@ module Music.Notation
 # Definition
 
 # Data Types
-@docs KeyClass
+@docs KeyClass, MidiPitch, AbcTempo, NoteTime
 
 # Functions
-@docs keySet, scale, accidentalImplicitInKey, dotFactor
+@docs keySet, scale, accidentalImplicitInKey, dotFactor, toMidiPitch, noteDuration
 
 -}
 
 import List.Extra exposing (getAt, splitAt, elemIndex, tails)
 import List exposing (member)
-import Maybe exposing (withDefault)
+import Maybe exposing (withDefault, oneOf)
 import String exposing (contains, endsWith, fromChar)
+import Dict exposing (Dict, fromList, get)
 import Abc.ParseTree exposing (Mode (..), Accidental (..), KeySignature, PitchClass (..), AbcNote)
+import Ratio exposing (Rational, over, fromInt, toFloat, add)
 
 {-| a complete pitch class (the white note and the accidental) -}
 type alias KeyClass = (PitchClass, Maybe Accidental)
@@ -35,6 +42,19 @@ type alias Scale = List KeyClass
 type alias KeySet = List KeyClass
 
 type alias Intervals = List Int
+
+{-| the pitch of a note expressed as a MIDI interval -}
+type alias MidiPitch = Int
+
+{-| the time taken when a note is played before the next note -}
+type alias NoteTime = Float
+
+{-| ABC header information defining tempo -}
+type alias AbcTempo = 
+    { tempoNoteLength : Rational
+    , bpm : Int
+    , unitNoteLength : Rational
+    }
 
 
 -- EXPORTED FUNCTIONS
@@ -88,6 +108,19 @@ dotFactor i =
     2 -> 0.75 
     3 -> 0.875 
     _ -> 0
+
+{-| convert an ABC note pitch to a MIDI pitch -}
+toMidiPitch : AbcNote -> KeySignature -> MidiPitch
+toMidiPitch n ks =
+  (n.octave * 12) + midiPitchOffset n ks
+
+{-| translate a tempo and unit note length to a real world note duration -}
+noteDuration : AbcTempo -> Rational -> NoteTime
+noteDuration t n = 
+   (60.0 * (Ratio.toFloat t.unitNoteLength)) / 
+    ((Ratio.toFloat t.tempoNoteLength) * (Basics.toFloat t.bpm)) * 
+     (Ratio.toFloat n)
+
 
 -- implementation
 
@@ -166,6 +199,32 @@ equivalentEnharmonic k =
 majorIntervals : Intervals
 majorIntervals = [2,2,1,2,2,2,1]
 
+{- lookup for providing offsets from C in a chromatic scale 
+   we have to translate a KeyClass to a string because otherwise
+   it can't be used as a Dict key.  This is a problem in Elm -
+   user-defined types should be attributable to a 'pseudo'
+   type class of comparable -}
+chromaticScaleDict : Dict String Int
+chromaticScaleDict =
+  Dict.fromList
+    [ ("C", 0), 
+      ("C#", 1),
+      ("Db", 1),
+      ("D", 2),
+      ("D#", 3),
+      ("Eb", 3),
+      ("E", 4),
+      ("F", 5),
+      ("F#", 6),
+      ("Gb", 6),
+      ("G", 7),
+      ("G#", 8),
+      ("Ab", 8),
+      ("A", 9),
+      ("A#",10),
+      ("Bb",10),
+      ("B", 11)
+     ]
  
 -- rotate the chromatic scale, starting from the supplied target character
 rotateFrom : KeyClass -> ChromaticScale -> ChromaticScale
@@ -256,6 +315,22 @@ isFlatMajorKey target =
     case accidental of
       Nothing -> (pc == F)
       Just a -> (a == Flat)
+
+{- convert an AbcNote (pich class and accidental) to a pitch offset in a chromatic scale -}
+midiPitchOffset : AbcNote -> KeySignature -> Int
+midiPitchOffset n ks =
+  let 
+    inKeyAccidental = accidentalImplicitInKey n ks
+    -- look first for an explicit then for an implicit accidental attached to this key class
+    maybeAccidental = oneOf [n.accidental, inKeyAccidental]
+    f a = case a of
+      Sharp -> "#"
+      Flat -> "b"
+      _ -> ""
+    accidental = withDefault "" (Maybe.map f maybeAccidental)
+    pattern = (toString n.pitchClass) ++ accidental
+  in
+    withDefault 0 (Dict.get pattern chromaticScaleDict)
 
 
 
