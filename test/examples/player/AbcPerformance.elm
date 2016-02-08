@@ -1,5 +1,5 @@
 module AbcPerformance (  NoteEvent
-                       , AbcPerformance
+                       , MelodyLine
                        , fromAbc
                        ) where
 
@@ -8,7 +8,7 @@ module AbcPerformance (  NoteEvent
 # Definition
 
 # Data Types
-@docs NoteEvent, AbcPerformance
+@docs NoteEvent, MelodyLine
 
 # Functions
 @docs fromAbc
@@ -31,15 +31,11 @@ type NoteEvent =
 
 type alias MelodyLine = List NoteEvent
 
-{-| AbcPerformance -}    
-type alias AbcPerformance = List MelodyLine 
-
 type alias TranslationState = 
    { keySignature : KeySignature
    , tempo : AbcTempo
    , tempoModifier : Float
    }
-
 
 -- default to 1/4=120
 defaultTempo : AbcTempo
@@ -58,6 +54,7 @@ defaultKey =
   } 
 
 -- get the tempo from the tune header
+{-
 getHeaderTempo : AbcTempo -> TuneHeaders -> AbcTempo
 getHeaderTempo a =
   let
@@ -73,8 +70,29 @@ getHeaderTempo a =
         _ -> acc       
   in
     List.foldr f a
+-}
 
+{- update the state of the player when we come across a header (either at the start or inline)
+   which affects the tune tempo or the pitch of a note (i.e. they key)
+-}
+updateState : Header -> (MelodyLine, TranslationState) -> (MelodyLine, TranslationState)
+updateState h acc =
+  let 
+    (melody, state) = acc
+    tempo = state.tempo
+  in case h of
+    UnitNoteLength d ->
+      (melody, { state | tempo = { tempo | unitNoteLength = d }} )
+    Tempo t ->
+      let 
+        tnl = List.foldl Ratio.add (fromInt 0) t.noteLengths
+      in
+       (melody, { state | tempo = { tempo | tempoNoteLength = tnl, bpm = t.bpm }} )
+    Key k ->
+       (melody, { state | keySignature = k} )
+    _ -> acc       
 
+{- translate a sequence of notes as found in chords (parallel) or tuplets (sequential) -}
 translateNoteSequence : Bool -> TranslationState -> List AbcNote -> MelodyLine
 translateNoteSequence isSeq state notes =
   let
@@ -153,46 +171,35 @@ translateMusic m acc =
       _ -> acc
 
 -- translate an entire melody line from the tune body (up to an end of line)
-toMelodyLine : TranslationState -> MusicLine -> MelodyLine
-toMelodyLine state ml =
-  let
-    (melodyLine, state) = List.foldr translateMusic ([], state) ml
-  in
-    melodyLine
+toMelodyLine : MusicLine -> (MelodyLine, TranslationState) -> (MelodyLine, TranslationState)
+toMelodyLine ml state =
+  List.foldr translateMusic state ml
 
-{- translate an AbcTune to a more playable AbcPerformance 
-   which is a list of lines of music consisting
-   of just notes (or rests) and their durations
+{- translate an AbcTune to a more playable melody line
+   which is a list of notes (or rests) and their durations
 -}
-fromAbc : AbcTune -> AbcPerformance
+fromAbc : AbcTune -> MelodyLine
 fromAbc tune =   
   let
-    acc = { keySignature = defaultKey, tempo = defaultTempo, tempoModifier = 1.0}
-    f bp = case bp of
-      Score musicLine continuation ->
-         toMelodyLine acc musicLine
-      _ ->
-         []
+    -- set a default state for case where there are no tune headers
+    defaultState = ([], { keySignature = defaultKey, tempo = defaultTempo, tempoModifier = 1.0})
+    -- update this from the header state if we have any headers
+    headerState = List.foldl updateState defaultState (fst tune)
+    f bp acc = case bp of
+      -- process a line from the melody using the current state
+      Score musicLine continuation -> 
+        let 
+          (existingLine, state) = acc
+          (newLine, newState) = toMelodyLine musicLine acc
+        in
+          (existingLine ++ newLine, state)
+      -- update the state if we have an inline header
+      BodyInfo header -> 
+        updateState header acc
    in 
-     List.map f (snd tune)
+     List.foldl f headerState (snd tune)
+       |> fst
 
 
-{- keep a running total of accumulated ticks -}
-{-
-accum : MidiMessage -> List MidiMessage -> List MidiMessage 
-accum nxt acc = let at = case acc of 
-                      [] -> 0
-                      x :: xs -> fst x
-                    nt = fst nxt
-                    nv = snd nxt
-                 in
-                    (at + nt, nv) :: acc
--}
-
-{-| accumulate the timings and leave only Tempo and NoteOn messages -}
-{-
-accumulateTimes : Track -> Track
-accumulateTimes = filterEvents << List.reverse << List.foldl accum [] 
--}
 
 

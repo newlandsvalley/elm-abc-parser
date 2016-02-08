@@ -16,7 +16,7 @@ import Abc exposing (parse)
 -- MODEL
 
 type alias Model =
-    { performance : Result String AbcPerformance
+    { performance : Result String MelodyLine
     }
 
 init : String -> (Model, Effects Action)
@@ -30,7 +30,7 @@ init topic =
 type Action
     = NoOp
     | Load String
-    | Abc (Result String AbcPerformance )
+    | Abc (Result String MelodyLine )
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
@@ -84,10 +84,10 @@ extractResponse result =
 toInt : String -> Int
 toInt = String.toInt >> Result.toMaybe >> Maybe.withDefault 0
 
-toPerformance : Result String AbcTune -> Result String AbcPerformance
+toPerformance : Result String AbcTune -> Result String MelodyLine
 toPerformance r = Result.map fromAbc r
 
-parseLoadedFile : Result String Value -> Result String AbcPerformance
+parseLoadedFile : Result String Value -> Result String MelodyLine
 parseLoadedFile r = 
   case r of
     Ok text -> case text of
@@ -101,7 +101,7 @@ parseLoadedFile r =
 
 (=>) = (,)
 
-viewPerformanceResult : Result String AbcPerformance -> String
+viewPerformanceResult : Result String MelodyLine -> String
 viewPerformanceResult mr = case mr of
       Ok res -> "OK: " ++ (toString res)
       Err errs -> "Fail: " ++ (toString errs)
