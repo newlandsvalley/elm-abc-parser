@@ -173,8 +173,9 @@ translateMusic m acc =
 -- translate an entire melody line from the tune body (up to an end of line)
 toMelodyLine : MusicLine -> (MelodyLine, TranslationState) -> (MelodyLine, TranslationState)
 toMelodyLine ml state =
+  -- List.foldl translateMusic state ml
   List.foldr translateMusic state ml
-
+ 
 {- translate an AbcTune to a more playable melody line
    which is a list of notes (or rests) and their durations
 -}
@@ -192,12 +193,17 @@ fromAbc tune =
           (existingLine, state) = acc
           (newLine, newState) = toMelodyLine musicLine acc
         in
-          (existingLine ++ newLine, state)
+          (newLine, state)
       -- update the state if we have an inline header
       BodyInfo header -> 
         updateState header acc
    in 
+     {-
      List.foldl f headerState (snd tune)
+       |> fst
+       |> List.reverse
+     -}    
+     List.foldr f headerState (snd tune)
        |> fst
 
 
