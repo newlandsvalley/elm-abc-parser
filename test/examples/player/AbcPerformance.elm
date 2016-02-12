@@ -1,6 +1,9 @@
-module AbcPerformance (  NoteEvent
+module AbcPerformance (  NoteEvent (..)
                        , MelodyLine
+                       , SingleNote
+                       , ABar
                        , fromAbc
+                       , fromAbcResult
                        ) where
 
 {-|  conversion of a ABC Tune parse tree to a performance
@@ -11,7 +14,7 @@ module AbcPerformance (  NoteEvent
 @docs NoteEvent, MelodyLine
 
 # Functions
-@docs fromAbc
+@docs fromAbc, fromAbcResult
 
 -}
 
@@ -20,10 +23,12 @@ import Music.Notation exposing (..)
 import String exposing (fromChar, toUpper)
 import Ratio exposing (Rational, over, fromInt, toFloat, add)
 
-type alias AccumulatedTime = Float
-
 {-| a Note Event (no pitch class implies a rest) -}    
-type alias SingleNote = (NoteTime, MidiPitch, Maybe PitchClass)
+type alias SingleNote = 
+  { time : NoteTime
+  , pitch : MidiPitch
+  , pc : Maybe PitchClass
+  }
 
 type NoteEvent =
      ANote SingleNote
@@ -134,7 +139,7 @@ translateNoteSequence isSeq state notes =
       let 
         duration = (noteDuration state.tempo abc.duration) * state.tempoModifier
       in
-        (duration, toMidiPitch abc state.keySignature, Just abc.pitchClass)
+        { time = duration, pitch = toMidiPitch abc state.keySignature, pc = Just abc.pitchClass}
   in
     if isSeq then 
        List.map f notes
@@ -148,8 +153,8 @@ translateNotePair n1 s1 n2 s2  =
   let      
     duration1 = (noteDuration s1.tempo n1.duration) * s1.tempoModifier
     duration2 = (noteDuration s2.tempo n2.duration) * s2.tempoModifier
-    note1 = ANote (duration1, toMidiPitch n1 s1.keySignature, Just n1.pitchClass) 
-    note2 = ANote (duration2, toMidiPitch n2 s2.keySignature, Just n2.pitchClass) 
+    note1 = ANote { time = duration1, pitch = toMidiPitch n1 s1.keySignature, pc = Just n1.pitchClass} 
+    note2 = ANote { time = duration2, pitch = toMidiPitch n2 s2.keySignature, pc = Just n2.pitchClass} 
   in
     [note1, note2]
 
@@ -165,14 +170,14 @@ translateMusic m acc =
       Note abc -> 
         let 
           duration = (noteDuration state.tempo abc.duration) * state.tempoModifier
-          note = ANote (duration, toMidiPitch abc state.keySignature, Just abc.pitchClass) 
+          note = ANote { time = duration, pitch = toMidiPitch abc state.keySignature, pc = Just abc.pitchClass} 
           newState = addNoteToState note state
         in
           (melodyLine, newState)
       Rest r -> 
         let 
           duration = (noteDuration state.tempo r) * state.tempoModifier
-          note = ANote (duration, 0, Nothing) 
+          note = ANote { time = duration, pitch = 0, pc = Nothing }
           newState = addNoteToState note state
         in 
           (melodyLine, newState)
@@ -226,6 +231,7 @@ translateMusic m acc =
 toMelodyLine : MusicLine -> (MelodyLine, TranslationState) -> (MelodyLine, TranslationState)
 toMelodyLine ml state =
   List.foldr translateMusic state ml
+  
  
 {- translate an AbcTune to a more playable melody line
    which is a list of notes (or rests) and their durations
@@ -248,13 +254,17 @@ fromAbc tune =
           (existingLine, state) = acc
           (newLine, newState) = toMelodyLine musicLine acc
         in
-          (newLine, state)
+          (newLine, newState)
       -- update the state if we have an inline header
       BodyInfo header -> 
         updateState header acc
    in 
      List.foldr f headerState (snd tune)
        |> fst
+
+fromAbcResult : Result String AbcTune -> Result String MelodyLine
+fromAbcResult r =
+  Result.map fromAbc r
 
 
 
