@@ -28,13 +28,20 @@ type alias SingleNote = (NoteTime, MidiPitch, Maybe PitchClass)
 type NoteEvent =
      ANote SingleNote
    | AChord (List SingleNote)
+   
+type alias ABar =
+  {  repeat : Maybe Repeat
+  ,  iteration : Maybe Int
+  ,  notes : List NoteEvent
+  }
 
-type alias MelodyLine = List NoteEvent
+type alias MelodyLine = List ABar
 
 type alias TranslationState = 
    { keySignature : KeySignature
    , tempo : AbcTempo
    , tempoModifier : Float
+   , thisBar : ABar
    }
 
 -- default to 1/4=120
@@ -52,6 +59,17 @@ defaultKey =
   , accidental = Nothing
   , mode = Major
   } 
+  
+defaultBar : ABar
+defaultBar = 
+  {  repeat = Nothing
+  ,  iteration = Nothing
+  ,  notes = []
+  }
+
+isDefaultBar : ABar -> Bool
+isDefaultBar b =
+  b == defaultBar
 
 -- get the tempo from the tune header
 {-
@@ -91,9 +109,25 @@ updateState h acc =
     Key k ->
        (melody, { state | keySignature = k} )
     _ -> acc       
+    
+addNoteToState : NoteEvent -> TranslationState -> TranslationState 
+addNoteToState n state =
+  let 
+    line = state.thisBar.notes
+    thisBar = state.thisBar
+  in
+    { state | thisBar = { thisBar | notes = n :: line }}
+  
+addNotesToState : List NoteEvent -> TranslationState -> TranslationState 
+addNotesToState ns state =
+  let 
+    line = state.thisBar.notes
+    thisBar = state.thisBar
+  in
+    { state | thisBar = { thisBar | notes = List.append ns line }}
 
 {- translate a sequence of notes as found in chords (parallel) or tuplets (sequential) -}
-translateNoteSequence : Bool -> TranslationState -> List AbcNote -> MelodyLine
+translateNoteSequence : Bool -> TranslationState -> List AbcNote -> List NoteEvent
 translateNoteSequence isSeq state notes =
   let
     f abc = 
@@ -109,18 +143,18 @@ translateNoteSequence isSeq state notes =
        [AChord (List.map f notes)]
 
 {- translate a pair of notes, each working under a separate state -}
-translateNotePair : AbcNote -> TranslationState -> AbcNote -> TranslationState -> MelodyLine -> MelodyLine
-translateNotePair n1 s1 n2 s2 ml =
+translateNotePair : AbcNote -> TranslationState -> AbcNote -> TranslationState -> List NoteEvent
+translateNotePair n1 s1 n2 s2  =
   let      
     duration1 = (noteDuration s1.tempo n1.duration) * s1.tempoModifier
     duration2 = (noteDuration s2.tempo n2.duration) * s2.tempoModifier
     note1 = ANote (duration1, toMidiPitch n1 s1.keySignature, Just n1.pitchClass) 
     note2 = ANote (duration2, toMidiPitch n2 s2.keySignature, Just n2.pitchClass) 
   in
-    (note1 :: note2 :: ml)
+    [note1, note2]
 
-{- not at all complete - translate a Music item from the parse tree to a playable note
-   (note duration and MIDI pitch) 
+{- not at all complete - translate Music items from the parse tree to a melody line - a sequence
+   of bars containing notes, rests and chords where notes are in a MIDI-friendly format
 -}
 translateMusic : Music -> (MelodyLine, TranslationState) -> (MelodyLine, TranslationState)
 translateMusic m acc =
@@ -131,49 +165,66 @@ translateMusic m acc =
       Note abc -> 
         let 
           duration = (noteDuration state.tempo abc.duration) * state.tempoModifier
-          line = ANote (duration, toMidiPitch abc state.keySignature, Just abc.pitchClass) :: melodyLine
+          note = ANote (duration, toMidiPitch abc state.keySignature, Just abc.pitchClass) 
+          newState = addNoteToState note state
         in
-          (line, state)
+          (melodyLine, newState)
       Rest r -> 
         let 
           duration = (noteDuration state.tempo r) * state.tempoModifier
-          line = ANote (duration, 0, Nothing) :: melodyLine 
-        in        
-          (line, state)
-      Tuplet signature notes ->
+          note = ANote (duration, 0, Nothing) 
+          newState = addNoteToState note state
+        in 
+          (melodyLine, newState)
+      Tuplet signature tnotes ->
         let 
           (p,q,r) = signature
-          newState = { state | tempoModifier = ( Basics.toFloat q / Basics.toFloat p) }
-          tuplet = translateNoteSequence True newState notes
-          line = List.append tuplet melodyLine         
+          tupletState = { state | tempoModifier = ( Basics.toFloat q / Basics.toFloat p) }
+          tupletNotes = translateNoteSequence True tupletState tnotes
+          newState = addNotesToState tupletNotes state
         in 
-          (line, state)
+          (melodyLine, newState)
       BrokenRhythmPair n1 b n2 ->     
         case b of 
           LeftArrow i ->
             let
               leftState =  { state | tempoModifier = ( 1 - dotFactor i) }
               rightState =  { state | tempoModifier = ( 1 + dotFactor i) }
-            in
-              (translateNotePair n1 leftState n2 rightState melodyLine, state)
+              notePair = translateNotePair n1 leftState n2 rightState
+              newState = addNotesToState notePair state
+            in              
+              (melodyLine, newState)
           RightArrow i ->
             let
               leftState =  { state | tempoModifier = ( 1 + dotFactor i) }
               rightState =  { state | tempoModifier = ( 1 - dotFactor i) }
-            in
-              (translateNotePair n1 leftState n2 rightState melodyLine, state)
+              notePair = translateNotePair n1 leftState n2 rightState
+              newState = addNotesToState notePair state
+            in              
+              (melodyLine, newState)
       Chord notes ->
         let 
           chord = translateNoteSequence False state notes
-          line = List.append chord melodyLine         
-        in 
-          (line, state)
+          newState = addNotesToState chord state
+        in             
+          (melodyLine, newState)
+      Barline b ->
+        let 
+          -- don't add to the melody the existing bar accumulated by the state if it's empty
+          newMelody = 
+            if (isDefaultBar state.thisBar) then
+              melodyLine
+            else
+              state.thisBar :: melodyLine
+          newBar = { defaultBar | repeat = b.repeat, iteration = b.iteration }
+          newState =  { state | thisBar = newBar }
+        in
+          (newMelody, newState)
       _ -> acc
 
 -- translate an entire melody line from the tune body (up to an end of line)
 toMelodyLine : MusicLine -> (MelodyLine, TranslationState) -> (MelodyLine, TranslationState)
 toMelodyLine ml state =
-  -- List.foldl translateMusic state ml
   List.foldr translateMusic state ml
  
 {- translate an AbcTune to a more playable melody line
@@ -183,7 +234,11 @@ fromAbc : AbcTune -> MelodyLine
 fromAbc tune =   
   let
     -- set a default state for case where there are no tune headers
-    defaultState = ([], { keySignature = defaultKey, tempo = defaultTempo, tempoModifier = 1.0})
+    defaultState = ([], { keySignature = defaultKey
+                        , tempo = defaultTempo
+                        , tempoModifier = 1.0
+                        , thisBar = defaultBar
+                        })
     -- update this from the header state if we have any headers
     headerState = List.foldl updateState defaultState (fst tune)
     f bp acc = case bp of
@@ -198,11 +253,6 @@ fromAbc tune =
       BodyInfo header -> 
         updateState header acc
    in 
-     {-
-     List.foldl f headerState (snd tune)
-       |> fst
-       |> List.reverse
-     -}    
      List.foldr f headerState (snd tune)
        |> fst
 
