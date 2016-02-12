@@ -75,6 +75,7 @@ barline : Parser Music
 barline = buildBarline <$> barSeparator <*> maybe Combine.Num.digit
              <?> "barline"
 
+{- written like this instead of a regex because it's all regex control character! -}
 barSeparator : Parser String
 barSeparator = 
   String.fromList <$>
@@ -677,9 +678,38 @@ buildKeySignature : String -> Maybe Accidental -> Maybe Mode -> KeySignature
 buildKeySignature pStr ma mm =
   { pitchClass = lookupPitch pStr, accidental = ma, mode = withDefault Major mm }
 
-{- build a bar line (i.e. a separation  between bars) -}
+{- build a bar line 
+  this is a bit tricky because of the poor specification for the possible shapes of bar lines 
+  which may have multiple different types of bar line markers (|,[,]) and repeat markers (:)  
+  Try to normalise to representations of basic shapes like (|, |:, :|, :||, ||:, ||, :|:, :||: )
+-}
 buildBarline : String -> Maybe Int -> Music
-buildBarline s i = Barline { separator = s, iteration = i }
+buildBarline s i = 
+  let 
+    f c = case c of
+      '[' -> '|'
+      ']' -> '|'
+      _ -> c
+    -- normalise all lines to '|'
+    normalised = String.map f s
+    -- count the lines up to a maximum of 2, minimum of 1
+    lines = String.length (String.filter (\c -> c == '|') normalised)
+    normalisedLineCount = max (min lines 2) 1 
+    -- count the repeat markers
+    repeatCount = String.length (String.filter (\c -> c == ':') normalised)
+    -- set the repeat
+    repeat = 
+       if (repeatCount == 0) then
+         Nothing
+       else if (repeatCount == 1) then
+         if String.contains ":|" normalised then
+           Just End
+         else
+           Just Begin
+       else 
+         Just BeginAndEnd
+  in
+    Barline { lines = normalisedLineCount, repeat = repeat, iteration = i }
 
   
 buildNote : Maybe String -> String -> Int -> Maybe Rational -> Maybe Char -> AbcNote
@@ -763,7 +793,8 @@ restOfInput = many anyChar
 parse : String -> Result.Result String AbcTune
 parse s =
   -- case Combine.parse midi s of 
-  case Combine.parse (abc <* restOfInput) s of
+  case Combine.parse (abc) s of
+  -- case Combine.parse (abc <* restOfInput) s of
     (Ok n, _) ->
       Ok n
 

@@ -36,8 +36,17 @@ bar : Bar -> String
 bar b = 
   let 
     it = withDefault "" (Maybe.map toString b.iteration)
+    lines = String.repeat b.lines "|"
   in
-    b.separator ++ it
+    case b.repeat of
+      Nothing -> 
+        lines ++ it
+      Just Begin -> 
+        lines ++ ":"
+      Just End -> 
+        ":" ++ lines ++ it
+      Just BeginAndEnd ->
+        ":" ++ lines ++ ":"  
     
 accidental : Accidental -> String
 accidental a = case a of

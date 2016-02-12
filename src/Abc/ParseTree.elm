@@ -8,6 +8,7 @@ module Abc.ParseTree
     , Music (..)
     , AbcNote
     , Bar
+    , Repeat (..)
     , NoteDuration
     , KeySignature
     , MeterSignature
@@ -33,6 +34,7 @@ module Abc.ParseTree
     , Music
     , AbcNote
     , Bar
+    , Repeat
     , NoteDuration
     , KeySignature
     , MeterSignature
@@ -92,9 +94,20 @@ type Music
   | NoteSequence (List Music)    -- Music restricted to note sequences
   | Spacer Int
 
-{-| a Bar line -}
+{-| a Repeat in a Bar line -}
+type Repeat = 
+    Begin
+  | End
+  | BeginAndEnd
+
+{-| a Bar line 
+   lines - the number of vertical lines in the bar
+   repeat - the type (if any) of a repeat marker for the section
+   iteration - the section end may be iteration 1 or 2
+-}
 type alias Bar = 
-  { separator : String
+  { lines : Int
+  , repeat : Maybe Repeat
   , iteration : Maybe Int
   }
 
