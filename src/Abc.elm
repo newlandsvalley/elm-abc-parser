@@ -30,7 +30,8 @@ import Abc.ParseTree exposing (..)
 
 -- top level parsers
 abc : Parser AbcTune
-abc = (,) <$> headers <*> many1 body <* restOfInput
+abc = (,) <$> headers <*> many1 body 
+-- abc = (,) <$> headers <*> many1 body <* restOfInput
 
 -- BODY
 body : Parser BodyPart
@@ -794,7 +795,6 @@ parse : String -> Result.Result String AbcTune
 parse s =
   -- case Combine.parse midi s of 
   case Combine.parse (abc) s of
-  -- case Combine.parse (abc <* restOfInput) s of
     (Ok n, _) ->
       Ok n
 

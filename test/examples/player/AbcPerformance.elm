@@ -76,6 +76,10 @@ isDefaultBar : ABar -> Bool
 isDefaultBar b =
   b == defaultBar
 
+isEmptyBar : ABar -> Bool
+isEmptyBar b =
+  List.length b.notes == 0
+
 -- get the tempo from the tune header
 {-
 getHeaderTempo : AbcTempo -> TuneHeaders -> AbcTempo
@@ -259,8 +263,15 @@ fromAbc tune =
       BodyInfo header -> 
         updateState header acc
    in 
-     List.foldr f headerState (snd tune)
-       |> fst
+     let
+        (music, state) =  List.foldr f headerState (snd tune)
+     -- ensure we don't forget the residual opening bar (still kept in the state) which may yet contain music
+     in 
+       if (isEmptyBar state.thisBar) then
+         music
+       else
+         (state.thisBar :: music)
+
 
 fromAbcResult : Result String AbcTune -> Result String MelodyLine
 fromAbcResult r =
