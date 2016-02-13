@@ -1,5 +1,7 @@
 module Abc
     (  parse
+    ,  parseError
+    ,  ParseError
     ) where
 
 {-|  Library for parsing ABC transcriptions using parser combinators
@@ -8,7 +10,10 @@ module Abc
 # Definition
 
 # Functions
-@docs parse
+@docs parse, errorMessage
+
+# Types
+@docs ParseError
 
 -}
 
@@ -26,6 +31,14 @@ import Dict exposing (Dict, get)
 import Result exposing (Result)
 import Regex exposing (Regex, contains)
 import Abc.ParseTree exposing (..)
+
+
+{-| a parse error with context -} 
+type alias ParseError =
+  {  msgs : List String
+  ,  input : String
+  ,  position : Int
+  }
 
 
 -- top level parsers
@@ -796,7 +809,8 @@ restOfInput = many anyChar
           
 -- exported functions
 
-{-| entry point - Parse an ABC tune image -}
+
+{-
 parse : String -> Result.Result String AbcTune
 parse s =
   -- case Combine.parse midi s of 
@@ -806,6 +820,26 @@ parse s =
 
     (Err ms, cx) ->
       Err ("parse error: " ++ (toString ms) ++ ", " ++ (toString cx))
+-}
+
+{-| entry point - Parse an ABC tune image -}
+parse : String -> Result.Result ParseError AbcTune
+parse s =
+  case Combine.parse (abc) s of
+    (Ok n, _) ->
+      Ok n
+
+    (Err msgs, ctx) ->
+      Err { msgs = msgs, input = ctx.input, position = ctx.position }
+
+{-| format a parse error as a string -}
+parseError : ParseError -> String
+parseError pe =
+  let
+    msg =
+      List.foldr String.append "" pe.msgs
+  in
+    "parse error: " ++ msg ++ " on " ++ pe.input ++ " at position " ++ toString (pe.position)
 
 
 

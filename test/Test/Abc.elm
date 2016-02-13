@@ -1,7 +1,7 @@
 module Test.Abc (tests) where
 
 import ElmTest exposing (..)
-import Abc exposing (parse)
+import Abc exposing (parse, parseError)
 import Abc.ParseTree exposing (PitchClass(..), KeySignature, Accidental(..), Mode(..), AbcNote)
 import Abc.Canonical exposing (fromTune)
 import Maybe exposing (Maybe)
@@ -18,7 +18,7 @@ roundTrip s =
       Ok res -> 
         fromTune res
       Err errs -> 
-        "Fail: " ++ errs
+        "Fail: " ++ (parseError errs)
 
 assertRoundTrip : String -> Assertion
 assertRoundTrip s =

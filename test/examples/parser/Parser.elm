@@ -9,7 +9,7 @@ import Task exposing (..)
 import List exposing (..)
 import Maybe exposing (..)
 import String exposing (..)
-import Result exposing (Result)
+import Result exposing (Result, formatError)
 import Signal exposing (Address)
 import Abc exposing (..)
 import Abc.ParseTree exposing (..)
@@ -96,7 +96,9 @@ parseLoadedFile r =
   case r of
     Ok text -> case text of
       Text s -> 
-        s |> parse
+        s 
+          |> parse
+          |> formatError parseError
       Blob b -> 
         Err "Blob unsupported"
     Err e -> Err e

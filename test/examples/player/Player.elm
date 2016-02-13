@@ -8,10 +8,10 @@ import Task exposing (..)
 import List exposing (..)
 import Maybe exposing (..)
 import String exposing (..)
-import Result exposing (Result)
+import Result exposing (Result, formatError)
 import AbcPerformance exposing (..)
 import Abc.ParseTree exposing (..)
-import Abc exposing (parse)
+import Abc exposing (parse, parseError)
 
 -- MODEL
 
@@ -92,7 +92,10 @@ parseLoadedFile r =
   case r of
     Ok text -> case text of
       Text s -> 
-        s |> parse |> toPerformance
+        s 
+         |> parse
+         |> formatError parseError 
+         |> toPerformance
       Blob b -> 
         Err "Blob unsupported"
     Err e -> Err e
