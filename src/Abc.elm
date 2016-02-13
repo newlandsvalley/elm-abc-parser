@@ -30,15 +30,17 @@ import Abc.ParseTree exposing (..)
 
 -- top level parsers
 abc : Parser AbcTune
-abc = (,) <$> headers <*> many1 body 
+abc = (,) <$> headers <*> body <* end
 -- abc = (,) <$> headers <*> many1 body <* restOfInput
 
 -- BODY
-body : Parser BodyPart
-body = choice 
-         [ score
-         , tuneBodyHeader
-         ]
+body : Parser (List BodyPart)
+body = (::) <$> score <*> many
+        (choice 
+          [ score
+          , tuneBodyHeader
+          ]
+        )
 
 score : Parser BodyPart 
 score = Score <$> musicLine <*> endLine 
@@ -225,7 +227,7 @@ noteDuration = rational <* whiteSpace
    120  (which means 1/4=120)
 -}
 tempoSignature : Parser TempoSignature
-tempoSignature = buildTempoSignature <$> maybe trimmedQuotedString <*> many headerRational <*> maybe (char '=') <*> int <*> maybe trimmedQuotedString
+tempoSignature = buildTempoSignature <$> maybe spacedQuotedString <*> many headerRational <*> maybe (char '=') <*> int <*> maybe spacedQuotedString
 
 
 -- accidental in a key signature (these use a different representation from accidentals in the tune body
@@ -422,7 +424,7 @@ tuneBodyOnlyInfo : Parser Header
 tuneBodyOnlyInfo = 
   choice [ symbolLine 
          , wordsAligned ] 
-           <?> "tune body only infp"
+           <?> "tune body only info"
 
 tuneBodyInfo : Parser Header
 tuneBodyInfo = 
@@ -465,15 +467,17 @@ continuation : Parser Bool
 continuation = succeed True <* char '\\' <* regex "[^\r\n]*"
 
 endLine : Parser Bool
-endLine = withDefault False <$> maybe continuation <* regex "(\r\n|\n|\r)" 
+endLine = 
+    log "end line" <$>
+          (withDefault False <$> maybe continuation <* regex "(\r\n|\n|\r)" )
             <?> "end line"
 
 
 headerCode : Char -> Parser Char
 headerCode c = char c <* char ':' <* whiteSpace
 
-trimmedQuotedString : Parser String
-trimmedQuotedString =
+spacedQuotedString : Parser String
+spacedQuotedString =
   whiteSpace *> quotedString <* whiteSpace
 
 quotedString : Parser String
@@ -785,8 +789,10 @@ toTupletInt s =
 
                 
 {- just for debug purposes - consume the rest of the input -}
+{-
 restOfInput : Parser (List Char)
 restOfInput = many anyChar
+-}
           
 -- exported functions
 

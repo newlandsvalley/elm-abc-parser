@@ -24,6 +24,17 @@ assertRoundTrip : String -> Assertion
 assertRoundTrip s =
   assertEqual s (roundTrip s)
 
+assertParseError : String -> Assertion
+assertParseError s =
+  let 
+    parseResult = parse s
+  in 
+    case parseResult of
+      Ok res -> 
+        assert False
+      Err errs -> 
+        assert True
+
 tests : Test
 tests =
   let 
@@ -51,7 +62,7 @@ tests =
         , test "user-defined" (assertRoundTrip userDefined)
         , test "voice" (assertRoundTrip voice)
         , test "words after" (assertRoundTrip wordsAfter)
-        , test "words before" (assertRoundTrip wordsBefore)
+        , test "words aligned" (assertRoundTrip wordsAligned)
         , test "reference number" (assertRoundTrip reference)
         , test "transcriber" (assertRoundTrip transcriber)
         , test "comment" (assertRoundTrip comment)
@@ -76,16 +87,24 @@ tests =
       suite "structure"
         [ test "inline" (assertRoundTrip inline)
         , test "inlineComment" (assertRoundTrip inlineComment)
+        ]   
+    badInput = 
+      suite "bad input"
+        [ test "bad characters 1" (assertParseError badChars1)
+        , test "bad characters 2" (assertParseError badChars2)
         ]
   in
     suite "Music Notation"
       [  header
       ,  tune
       ,  structure
+      ,  badInput
       ]
 
 -- these ABC samples must already be in canonical format for round-tripping to work
 -- because of the exact string matching algorithm
+
+-- music
 note = "| ABC z2 def z/ |\r\n"
 brokenRhythm = "| A>B C>>D a<b c<<d |\r\n"
 accidentals = "| ^A_B c=d_e |\r\n"
@@ -100,6 +119,7 @@ chordSymbols = "| \"Em\" EG \"Am\" AC |\r\n"
 chords = "| [de^f]g [cda]b |\r\n"
 articulation = "(vA2 | !fz!Ld2).d.f .e.d.c.B A2(A2 | d2).d.f .e.d.c.B A2A2 |\r\n"
 
+-- headers
 area = "A: London\r\n| ABC |\r\n"
 book = "B: Richie Robinson\r\n| ABC |\r\n"
 composer = "C: Bys-Kalle\r\n| ABC |\r\n"
@@ -121,16 +141,19 @@ source = "S: Christine Dyer\r\n| ABC |\r\n"
 title = "T: Engelska efter Albert Augustsson\r\n| ABC |\r\n"
 userDefined = "U: some comment\r\n| ABC |\r\n"
 voice = "V: T1           clef=treble-8  name=\"Tenore I\"   snm=\"T.I\"\r\n| ABC |\r\n"
-wordsAfter = "W: doh re mi fa\r\n| ABC |\r\n"
-wordsBefore = "w: doh re mi fa\r\n| ABC |\r\n"
+wordsAfter = "W: doh re mi fa \r\n| ABC |\r\n"
+wordsAligned = "| ABC |\r\nw: doh re mi fa \r\n| ABC |\r\n"   -- only appears inline
 reference = "X: 125\r\n| ABC |\r\n"
 transcriber = "Z: John Watson\r\n| ABC |\r\n"
 comment = "%%TBL:{\"version\":\"beta\",\"type\":\"tune\",\"id\":\"10294\"}\r\n| ABC |\r\n"
 
-
+-- structure
 inline = "| ABC z2 def z/ \r\nQ: 1/4=120\r\n| ABC z2 def z/ |\r\n"
 inlineComment = "| ABC z2 def z/ \r\n%% this is a comment\r\n| ABC z2 def z/ |\r\n"
 
+-- bad input
+badChars1 = "| ABC z2 def z/ |\r\n| foo bar |\r\n"
+badChars2 = "| foo bar |\r\n| ABC z2 def z/ |\r\n"
 
 
 

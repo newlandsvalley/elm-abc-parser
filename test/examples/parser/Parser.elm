@@ -175,6 +175,12 @@ view address model =
       , li [] [
               button [ onClick address (Load "abc/comment.abc") ] [ text "comment sample" ]
               ]
+      , li [] [
+              button [ onClick address (Load "abc/wordsaligned.abc") ] [ text "words aligned" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/badinput.abc") ] [ text "bad input" ]
+              ]
       ]
     , div [  ] (checkbox address model.roundTrip RoundTrip "round trip")
     , div [  ] [ 
