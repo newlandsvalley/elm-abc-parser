@@ -205,6 +205,7 @@ music m = case m of
    Decoration s -> decorate s
    GraceNote isAcciaccatura m -> "{" ++ music m ++ "}"
    Slur c -> String.fromChar c
+   Annotation placement s -> toString placement ++ ":" ++ s 
    ChordSymbol s -> enquote s
    Chord ns -> "[" ++ notes ns ++ "]"
    Inline h -> "[" ++ header h ++ "]"

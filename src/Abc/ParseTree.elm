@@ -14,6 +14,7 @@ module Abc.ParseTree
     , MeterSignature
     , TempoSignature
     , TupletSignature
+    , AnnotationPlacement (..)
     , Mode (..)
     , Accidental (..)
     , PitchClass (..)
@@ -40,6 +41,7 @@ module Abc.ParseTree
     , MeterSignature
     , TempoSignature
     , TupletSignature
+    , AnnotationPlacement
     , Mode
     , Accidental
     , PitchClass
@@ -78,6 +80,14 @@ type alias AbcNote =
   ,  tied : Bool   -- to the next note
 }
 
+{-| an annotation placement -}
+type AnnotationPlacement =
+    AboveNextSymbol
+  | BelowNextSymbol
+  | LeftOfNextSymbol
+  | RightOfNextSymbol
+  | Discretional
+
 {-| the 'score' part of Music -}
 type Music 
   = Barline Bar
@@ -88,6 +98,7 @@ type Music
   | Decoration String
   | Slur Char
   | GraceNote Bool Music         -- Music restricted to note sequences or chords
+  | Annotation AnnotationPlacement String
   | ChordSymbol String
   | Chord (List AbcNote)
   | Inline Header

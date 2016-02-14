@@ -101,6 +101,7 @@ tests =
         , test "ignore" (assertParses ignore)
         , test "typesetSpace" (assertParses typesetSpace)
         , test "backtick" (assertParses backtick)
+        , test "annotation" (assertParses annotation)
         ]   
     structure = 
       suite "structure"
@@ -140,6 +141,7 @@ articulation = "(vA2 | !fz!Ld2).d.f .e.d.c.B A2(A2 | d2).d.f .e.d.c.B A2A2 |\r\n
 ignore = "| ABC# z2 @def z/ |\r\n"
 typesetSpace = "| ABC yz2 defyz/ |\r\n"
 backtick = "| A``B``C |\r\n"
+annotation = "| \"<(\" \">)\" EG   |\r\n"
 
 -- headers
 area = "A: London\r\n| ABC |\r\n"

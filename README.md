@@ -24,7 +24,6 @@ Limitations
 
 To do:
 
-*  Annotations
 *  Allow chords to have lengths and/or articulations
 *  Dotted grace notes and slurs!
 

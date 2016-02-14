@@ -76,6 +76,7 @@ musicItem = rec <| \() ->
        , tuplet
        , slur
        , graceNote           -- we are not enforcing the ordering of grace notes, chords etc pre-note
+       , annotation
        , chordSymbol
        , decoration
        , spacer
@@ -142,6 +143,23 @@ rest = Rest <$> (withDefault (fromInt 1) <$> (regex "[XxZz]" *> maybe noteDur))
 {- a free - format chord symbol - see 4.18 Chord symbols -}
 chordSymbol : Parser Music
 chordSymbol = ChordSymbol <$> quotedString
+
+{- an annotation to the score 
+  4.19 Annotations
+
+  General text annotations can be added above, below or on the staff in a similar way to chord symbols. In this case, the string within double quotes 
+  is preceded by one of five symbols ^, _, <, > or @ which controls where the annotation is to be placed; above, below, to the left or right respectively
+  of the following note, rest or bar line. Using the @ symbol leaves the exact placing of the string to the discretion of the interpreting program.
+  These placement specifiers distinguish annotations from chord symbols, and should prevent programs from attempting to play or transpose them. 
+  All text that follows the placement specifier is treated as a text string.
+
+  Example: 
+
+  "<(" ">)" C
+
+-}
+annotation : Parser Music
+annotation = buildAnnotation <$> annotationString
 
 chord : Parser Music
 chord = Chord <$> 
@@ -535,6 +553,11 @@ quotedString =
     string "\"" *> regex "(\\\\\"|[^\"\n])*" <* string "\"" 
       <?> "quoted string"
 
+annotationString : Parser String
+annotationString = 
+    string "\"" *> regex "[\\^\\>\\<-@](\\\\\"|[^\"\n])*" <* string "\"" 
+      <?> "quoted string"
+
 {- parse a remaining string up to but not including the end of line -}
 strToEol : Parser String
 -- strToEol = String.fromList <$> many (noneOf [ '\r', '\n' ]) 
@@ -829,6 +852,19 @@ buildBrokenOperator s =
     LeftArrow (String.length s)
   else
     RightArrow (String.length s)
+
+buildAnnotation : String -> Music
+buildAnnotation s =
+  let     
+    firstChar = List.head ( String.toList s )
+    placement = case firstChar of
+     Just '^' -> AboveNextSymbol
+     Just '_' -> BelowNextSymbol
+     Just '<' -> LeftOfNextSymbol
+     Just '>' -> RightOfNextSymbol
+     _ -> Discretional
+  in
+    Annotation placement s
 
 
 toTupletInt : String -> Int
