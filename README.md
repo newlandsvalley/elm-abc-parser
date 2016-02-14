@@ -25,11 +25,10 @@ Limitations
 To do:
 
 *  Dotted grace notes and slurs!
+*  Key signatures with accidentals - e.g. K:D Phr ^f
 
 Deviations from the Spec
 ------------------------
-
-A Key signature empty or 'none'.  This is simply not helpful for what I want to achieve.  All traditional music that I deal with has a key.
 
 Sections of the spec marked as 'volatile' are treated as being non-normative.  The parser attempts to treat them as liberally as possible.  In any case, these sections do not affect the primary purpose which is to support the replay of simple monophonic tunes.
 

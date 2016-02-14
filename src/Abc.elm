@@ -221,29 +221,28 @@ headerRational : Parser Rational
 headerRational = rational <* whiteSpace
 
 {- experimental -}
-meterDefinition : Parser MeterSignature
+meterDefinition : Parser (Maybe MeterSignature)
 meterDefinition =
   choice 
    [
      cutTime
    , commonTime
    , meterSignature
+   , nometer
    ]
 
-commonTime : Parser MeterSignature
-commonTime = succeed (4,4) <* char 'C'
+commonTime : Parser (Maybe MeterSignature)
+commonTime = succeed (Just (4,4)) <* char 'C'
 
-cutTime : Parser MeterSignature
-cutTime = succeed (2,2) <* string "C|"
+cutTime : Parser (Maybe MeterSignature)
+cutTime = succeed (Just (2,2)) <* string "C|"
 
 -- can't use Rationals for these because they cancel
-meterSignature : Parser MeterSignature
-meterSignature = (,) <$> int <* char '/' <*> int <* whiteSpace
+meterSignature : Parser (Maybe MeterSignature)
+meterSignature = Just <$> ( (,) <$> int <* char '/' <*> int <* whiteSpace)
 
-{-
-meterSignature : Parser MeterSignature
-meterSignature = rational <* whiteSpace
--}
+nometer : Parser (Maybe MeterSignature)
+nometer = succeed Nothing <* string "none"
 
 noteDuration : Parser NoteDuration
 noteDuration = rational <* whiteSpace
@@ -260,7 +259,6 @@ noteDuration = rational <* whiteSpace
 -}
 tempoSignature : Parser TempoSignature
 tempoSignature = buildTempoSignature <$> maybe spacedQuotedString <*> many headerRational <*> maybe (char '=') <*> int <*> maybe spacedQuotedString
-
 
 -- accidental in a key signature (these use a different representation from accidentals in the tune body
 sharpOrFlat : Parser Accidental

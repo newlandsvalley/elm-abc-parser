@@ -209,7 +209,7 @@ type Header =
     | Instruction String                 -- Directive
     | Key KeySignature          
     | UnitNoteLength NoteDuration                   
-    | Meter MeterSignature                          
+    | Meter (Maybe MeterSignature)                          
     | Macro String                       
     | Notes String                    
     | Origin String                  

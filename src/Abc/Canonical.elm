@@ -104,12 +104,16 @@ ratlist rs =
     List.foldr f "" rs
       |> trimRight
     
-meter : MeterSignature -> String
-meter m = 
-  let 
-    (n, d) = m
-  in
-    toString n ++ "/" ++ toString d
+meter : Maybe MeterSignature -> String
+meter ms = 
+  case ms of
+    Nothing ->
+      "none"
+    Just m ->
+      let 
+        (n, d) = m
+      in
+        toString n ++ "/" ++ toString d
 
 duration : NoteDuration -> String
 duration nd = 

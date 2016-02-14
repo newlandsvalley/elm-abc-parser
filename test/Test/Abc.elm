@@ -65,6 +65,7 @@ tests =
         , test "instruction" (assertRoundTrip instruction)
         , test "unit note length" (assertRoundTrip noteLength)
         , test "meter" (assertRoundTrip meter)
+        , test "no meter" (assertRoundTrip nometer)
         , test "macro" (assertRoundTrip macro)
         , test "notes" (assertRoundTrip notes)
         , test "origin" (assertRoundTrip origin)
@@ -154,6 +155,7 @@ history = "H: Learned from AnnbjØrg Lien\r\n| ABC |\r\n"
 instruction = "I: abc-charset UTF-8\r\n| ABC |\r\n"
 noteLength = "L: 1/8\r\n| ABC |\r\n"
 meter = "M: 3/4\r\n| ABC |\r\n"
+nometer = "M: none\r\n| ABC |\r\n"
 macro = "m: ~g2 = {a}g{f}g\r\n| ABC |\r\n"
 notes = "N: from recording made at Tideswell\r\n| ABC |\r\n"
 origin = "O: Skåne\r\n| ABC |\r\n"
