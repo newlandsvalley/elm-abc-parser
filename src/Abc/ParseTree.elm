@@ -93,6 +93,7 @@ type Music
   | Inline Header
   | NoteSequence (List Music)    -- Music restricted to note sequences
   | Spacer Int
+  | Ignore
 
 {-| a Repeat in a Bar line -}
 type Repeat = 
@@ -208,6 +209,7 @@ type Header =
     | ReferenceNumber Int
     | Transcription String
     | Comment String
+    | UnsupportedHeader
 
 
 

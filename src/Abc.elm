@@ -79,6 +79,7 @@ musicItem = rec <| \() ->
        , chordSymbol
        , decoration
        , spacer
+       , ignore
        ]       
     )
 
@@ -384,9 +385,15 @@ transcription = Transcription <$> ((headerCode 'Z') *> strToEol)
 header : Parser Header
 header = informationField <* eol
 
+{- unsupported header reserved for future use -}
+unsupportedHeader : Parser Header
+unsupportedHeader = succeed UnsupportedHeader <* unsupportedHeaderCode <* strToEol
+
 {- ditto for headers that may appear in the tune body -}
 tuneBodyHeader : Parser BodyPart
 tuneBodyHeader  = BodyInfo <$> tuneBodyInfo <* eol
+
+
 
 {- whereas information fields can be used inline -}
 informationField : Parser Header
@@ -410,7 +417,9 @@ tuneInfo =
          , origin
          , source
          , referenceNumber
-         , transcription ]
+         , transcription 
+         , unsupportedHeader  -- headers that are currently unsupported but must be recognized and ignored
+         ]
            <?> "tune info"
 
 anywhereInfo : Parser Header
@@ -465,7 +474,31 @@ whiteSpace = String.fromList <$> (many <| choice [space, tab])
 
 -- at least one (intended) space somewhere inside the music body
 spacer : Parser Music
-spacer = Spacer <$> ( List.length <$> (many1 space))
+spacer = Spacer <$> ( List.length <$> (many1 scoreSpace))
+-- spacer = Spacer <$> ( List.length <$> (many1 space))
+
+{- space within a line of the tune's score -}
+scoreSpace : Parser Char
+scoreSpace = choice [ space
+            , char 'y'
+            , tab
+            ]
+
+{- characters to ignore 
+
+  Section 8.1 Tune Body:
+
+  The following characters are currently reserved: # * ; ? @
+  In future standards they may be used to extend the abc syntax. To ensure forward compatibility, 
+  current software should ignore these characters when they appear inside or between note groups.
+
+  section 4.7 Beams:
+
+  Back quotes ` may be used freely between notes to be beamed, to increase legibility. 
+  They are ignored by computer programs. For example, A2``B``C is equivalent to A2BC.
+-}
+ignore : Parser Music
+ignore = succeed Ignore <* (regex "[#@;`\\*\\?]+")
 
 {- this is an area where the spec is uncertain.  See 6.1.1 Typesetting line-breaks
    The forward slash is used to indicate 'continuation of input lines' often because
@@ -488,6 +521,10 @@ endLine =
 
 headerCode : Char -> Parser Char
 headerCode c = char c <* char ':' <* whiteSpace
+
+unsupportedHeaderCode : Parser String
+unsupportedHeaderCode = 
+  regex "[a-qt-vx-zEJ]" <* char ':' <* whiteSpace
 
 spacedQuotedString : Parser String
 spacedQuotedString =

@@ -210,6 +210,7 @@ music m = case m of
    Inline h -> "[" ++ header h ++ "]"
    NoteSequence ms -> musics ms
    Spacer i -> " "
+   Ignore -> ""
    -- _ -> ""
 
 header : Header -> String

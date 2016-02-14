@@ -9,6 +9,7 @@ import Maybe exposing (Maybe)
 
 import String
 
+{- round trip ABC -> ParseTree -> ABC -}
 roundTrip : String -> String
 roundTrip s =
   let 
@@ -20,10 +21,24 @@ roundTrip s =
       Err errs -> 
         "Fail: " ++ (parseError errs)
 
+{- assert round-tripping works -}
 assertRoundTrip : String -> Assertion
 assertRoundTrip s =
   assertEqual s (roundTrip s)
 
+{- assert the input parses -}
+assertParses : String -> Assertion
+assertParses s = 
+  let 
+    parseResult = parse s
+  in 
+    case parseResult of
+      Ok res -> 
+        assert True
+      Err errs -> 
+        assert False
+
+{- assert the input doesn't parse -}
 assertParseError : String -> Assertion
 assertParseError s =
   let 
@@ -66,6 +81,7 @@ tests =
         , test "reference number" (assertRoundTrip reference)
         , test "transcriber" (assertRoundTrip transcriber)
         , test "comment" (assertRoundTrip comment)
+        , test "unsupported header" (assertParses unsupportedHeader)
         ]
     tune =
       suite "tune"
@@ -82,6 +98,9 @@ tests =
         , test "chord symbols" (assertRoundTrip chordSymbols)
         , test "chords" (assertRoundTrip chords)
         , test "articulation" (assertRoundTrip articulation)
+        , test "ignore" (assertParses ignore)
+        , test "typesetSpace" (assertParses typesetSpace)
+        , test "backtick" (assertParses backtick)
         ]   
     structure = 
       suite "structure"
@@ -118,6 +137,9 @@ grace = "| {d^f}GA |\r\n"
 chordSymbols = "| \"Em\" EG \"Am\" AC |\r\n"
 chords = "| [de^f]g [cda]b |\r\n"
 articulation = "(vA2 | !fz!Ld2).d.f .e.d.c.B A2(A2 | d2).d.f .e.d.c.B A2A2 |\r\n"
+ignore = "| ABC# z2 @def z/ |\r\n"
+typesetSpace = "| ABC yz2 defyz/ |\r\n"
+backtick = "| A``B``C |\r\n"
 
 -- headers
 area = "A: London\r\n| ABC |\r\n"
@@ -146,6 +168,7 @@ wordsAligned = "| ABC |\r\nw: doh re mi fa \r\n| ABC |\r\n"   -- only appears in
 reference = "X: 125\r\n| ABC |\r\n"
 transcriber = "Z: John Watson\r\n| ABC |\r\n"
 comment = "%%TBL:{\"version\":\"beta\",\"type\":\"tune\",\"id\":\"10294\"}\r\n| ABC |\r\n"
+unsupportedHeader = "j: custom header\r\n| ABC |\r\n"
 
 -- structure
 inline = "| ABC z2 def z/ \r\nQ: 1/4=120\r\n| ABC z2 def z/ |\r\n"
