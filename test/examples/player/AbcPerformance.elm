@@ -211,9 +211,9 @@ translateMusic m acc =
               newState = addNotesToState notePair state
             in              
               (melodyLine, newState)
-      Chord notes ->
+      Chord abcChord ->
         let 
-          chord = translateNoteSequence False state notes
+          chord = translateNoteSequence False state abcChord.notes
           newState = addNotesToState chord state
         in             
           (melodyLine, newState)
