@@ -162,8 +162,8 @@ annotation : Parser Music
 annotation = buildAnnotation <$> annotationString
 
 chord : Parser Music
-chord = Chord <$> 
-         between (char '[') (char ']') (many1 abcNote)
+chord = Chord <$> abcChord
+         -- between (char '[') (char ']') (many1 abcNote)
 
 inline : Parser Music
 inline = Inline <$> 
@@ -576,6 +576,9 @@ note = Note <$> abcNote
 abcNote : Parser AbcNote
 abcNote = buildNote <$> maybeAccidental <*> pitch <*> moveOctave <*> maybe noteDur <*> maybeTie
 
+abcChord : Parser AbcChord
+abcChord = buildChord <$> maybeAccidental <*>  (between (char '[') (char ']') (many1 abcNote)) <*> maybe noteDur 
+
 {- an upper or lower case note ([A-Ga-g]) -}
 pitch : Parser String
 pitch =
@@ -593,38 +596,6 @@ maybeAccidental =
         , string "="
         ]
  
-
--- move an octave - altering a note's pitch (up or down) by a succession of octaves
-{- old implementation
-moveOctave : Parser Int
-moveOctave = 
-   withDefault 0 <$>
-     maybe 
-       (choice
-          [ octave True  -- up
-          , octave False  -- down
-          ]
-        )
--}
-
-{- True means octave up (denoted by an apostrophe
-   False means octave down (denoted by a comma)
-   return a positive or negative number according to the number of markers parsed
--}
-{- old implementation
-octave : Bool -> Parser Int
-octave b = 
-   let 
-     c =
-       case b of 
-         True -> '\''  -- up
-         _ -> ','      -- down
-     fn l = case b of  -- negate answers for low octaves
-          True -> l
-          _ -> 0 - l
-   in
-     log "octave" <$> (fn <$> (List.length <$> many1 (char c)))
--}
 
 {- move an octave up (+ve - according to the number of apostrophes parsed)
              or down (-ve - according to the number of commas parsed)
@@ -692,19 +663,6 @@ tupletSignature = buildTupletSignature <$>
 tup : Parser (Maybe String)
 tup = join <$> maybe 
         (char ':' *> maybe (regex "[2-9]"))
-
--- flip the first 2 arguments of a 3-argument function
-{-
-flip2of3 : (a -> b -> c -> d ) -> (b -> a -> c -> d)  
-flip2of3 f = 
-    let 
-      g x y z = f y x z
-    in
-      g
--}
-
-
-
 
 -- builders
 
@@ -821,6 +779,14 @@ buildAccidental ms = case ms of
    Just "_"  -> Just Flat
    Just "="  -> Just Natural
    _ -> Nothing 
+
+buildChord : Maybe String -> List AbcNote -> Maybe Rational ->  AbcChord
+buildChord macc ns ml = 
+  let
+    l = withDefault (Ratio.fromInt 1) ml
+    a = buildAccidental macc
+  in 
+    { notes = ns, accidental = a, duration = l }
 
 {- build a tuplet signature {p,q,r) - p notes in the time taken for q
    in operation over the next r notes

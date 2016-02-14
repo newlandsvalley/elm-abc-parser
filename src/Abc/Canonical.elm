@@ -161,6 +161,16 @@ abcNote a =
      ++ octave a.octave
      ++ duration a.duration
      ++ tie
+
+abcChord : AbcChord -> String
+abcChord a =
+  let
+     acc = withDefault ""
+            (Maybe.map accidental a.accidental)
+  in
+     acc 
+     ++ "[" ++ (notes a.notes) ++ "]"
+     ++ duration a.duration
      
 notes : List AbcNote -> String
 notes ns = 
@@ -207,7 +217,7 @@ music m = case m of
    Slur c -> String.fromChar c
    Annotation placement s -> toString placement ++ ":" ++ s 
    ChordSymbol s -> enquote s
-   Chord ns -> "[" ++ notes ns ++ "]"
+   Chord a -> abcChord a
    Inline h -> "[" ++ header h ++ "]"
    NoteSequence ms -> musics ms
    Spacer i -> " "

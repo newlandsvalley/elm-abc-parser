@@ -7,6 +7,7 @@ module Abc.ParseTree
     , Header (..)
     , Music (..)
     , AbcNote
+    , AbcChord
     , Bar
     , Repeat (..)
     , NoteDuration
@@ -78,7 +79,13 @@ type alias AbcNote =
   ,  octave : Int
   ,  duration : NoteDuration
   ,  tied : Bool   -- to the next note
-}
+  }
+
+type alias AbcChord = 
+  { notes : List AbcNote
+  , accidental : Maybe Accidental
+  , duration : NoteDuration
+  }
 
 {-| an annotation placement -}
 type AnnotationPlacement =
@@ -100,7 +107,7 @@ type Music
   | GraceNote Bool Music         -- Music restricted to note sequences or chords
   | Annotation AnnotationPlacement String
   | ChordSymbol String
-  | Chord (List AbcNote)
+  | Chord AbcChord
   | Inline Header
   | NoteSequence (List Music)    -- Music restricted to note sequences
   | Spacer Int
