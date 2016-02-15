@@ -181,6 +181,9 @@ view address model =
               button [ onClick address (Load "abc/wordsaligned.abc") ] [ text "words aligned" ]
               ]
       , li [] [
+              button [ onClick address (Load "abc/keysig.abc") ] [ text "key signature" ]
+              ]
+      , li [] [
               button [ onClick address (Load "abc/badinput.abc") ] [ text "bad input" ]
               ]
       ]

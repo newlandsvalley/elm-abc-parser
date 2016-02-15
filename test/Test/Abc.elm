@@ -63,6 +63,8 @@ tests =
         , test "group" (assertRoundTrip group)
         , test "history" (assertRoundTrip history)
         , test "instruction" (assertRoundTrip instruction)
+        , test "key" (assertRoundTrip key)
+        , test "key with accidental" (assertRoundTrip keyWithAccidental)
         , test "unit note length" (assertRoundTrip noteLength)
         , test "meter" (assertRoundTrip meter)
         , test "no meter" (assertRoundTrip nometer)
@@ -153,6 +155,8 @@ fileurl = "F: http\\\\tradtunedb.org.uk\r\n| ABC |\r\n"
 group = "G: Swåp\r\n| ABC |\r\n"
 history = "H: Learned from AnnbjØrg Lien\r\n| ABC |\r\n"
 instruction = "I: abc-charset UTF-8\r\n| ABC |\r\n"
+key = "K: AMinor\r\n| ABC |\r\n"
+keyWithAccidental = "K: AMinor ^f\r\n| ABC |\r\n"
 noteLength = "L: 1/8\r\n| ABC |\r\n"
 meter = "M: 3/4\r\n| ABC |\r\n"
 nometer = "M: none\r\n| ABC |\r\n"

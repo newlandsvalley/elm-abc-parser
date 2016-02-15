@@ -134,6 +134,15 @@ key k =
    in
      toString k.pitchClass ++ acc ++ toString k.mode
 
+keyAccidental : KeyAccidental -> String
+keyAccidental ka =
+  accidental ka.accidental ++ toLower (toString ka.pitchClass)
+
+keyAccidentals : List KeyAccidental -> String
+keyAccidentals = 
+  String.concat 
+    << List.map (\a -> " " ++ keyAccidental a) 
+
 octave : Int -> String
 octave i =
    if ((i == 4) || (i == 5)) then 
@@ -238,7 +247,7 @@ header h = case h of
    Group s -> "G: " ++ s
    History s -> "H: " ++ s
    Instruction s -> "I: " ++ s
-   Key k -> "K: " ++ (key k)
+   Key k kacc -> "K: " ++ (key k) ++ (keyAccidentals kacc)
    UnitNoteLength d -> "L: " ++ (duration d)
    Meter m -> "M: " ++ (meter m)   
    Macro s -> "m: " ++ s

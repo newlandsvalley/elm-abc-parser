@@ -200,8 +200,6 @@ noteSequence = NoteSequence <$> many1 note
 rational : Parser Rational
 rational = Ratio.over <$> int <* char '/' <*> int
 
-
-
 -- e.g. /4 (as found in note durations)
 curtailedRational : Parser Rational
 curtailedRational = Ratio.over 1 <$> (char '/' *> int)
@@ -260,17 +258,26 @@ noteDuration = rational <* whiteSpace
 tempoSignature : Parser TempoSignature
 tempoSignature = buildTempoSignature <$> maybe spacedQuotedString <*> many headerRational <*> maybe (char '=') <*> int <*> maybe spacedQuotedString
 
--- accidental in a key signature (these use a different representation from accidentals in the tune body
+-- accidental in a key signature (these use a different representation from accidentals in the tune body)
 sharpOrFlat : Parser Accidental
 sharpOrFlat = 
    map  (\x -> if x == '#' then Sharp else Flat)          
            (choice [ char '#', char 'b'])
 
 keyName : Parser String
-keyName = regex "[A-G]"
+keyName =  regex "[A-G]"
 
 keySignature : Parser KeySignature
-keySignature = buildKeySignature <$> keyName <*> maybe sharpOrFlat <*> maybe mode
+keySignature = 
+  buildKeySignature <$> keyName <*> maybe sharpOrFlat <*> maybe mode
+
+-- an accidental as an amendment to a key signature - as in e.g. K:D Phr ^f
+keyAccidental : Parser KeyAccidental
+keyAccidental = buildKeyAccidental <$> accidental <*> pitch
+
+-- of which there may be zero or more, separated by spaces
+keyAccidentals : Parser (List KeyAccidental)
+keyAccidentals = many (space *> keyAccidental)
 
 mode : Parser Mode
 mode = choice 
@@ -341,7 +348,7 @@ instruction : Parser Header
 instruction = Instruction <$> ((headerCode 'I') *> inlineInfo )
 
 key : Parser Header
-key = Key <$> ((headerCode 'K') *> keySignature )
+key = buildKey <$> (headerCode 'K') <*> keySignature <*> keyAccidentals <* strToEol
 
 unitNoteLength : Parser Header
 unitNoteLength = UnitNoteLength <$> ((headerCode 'L') *> noteDuration )
@@ -579,20 +586,24 @@ abcChord = buildChord <$> maybeAccidental <*>  (between (char '[') (char ']') (m
 
 {- an upper or lower case note ([A-Ga-g]) -}
 pitch : Parser String
-pitch =
-  regex "[A-Ga-g]"
+pitch = regex "[A-Ga-g]"
 
 -- maybe an accidental defining a note's pitch
-maybeAccidental : Parser (Maybe String)
+maybeAccidental : Parser (Maybe Accidental)
 maybeAccidental = 
-  maybe <|
-      choice
-        [ string "^^"
-        , string "__"
-        , string "^"
-        , string "_"
-        , string "="
-        ]
+  maybe accidental
+
+accidental : Parser Accidental
+accidental = 
+  buildAccidental <$>     
+    (choice
+      [ string "^^"
+      , string "__"
+      , string "^"
+      , string "_"
+      , string "="
+      ]
+     )
  
 
 {- move an octave up (+ve - according to the number of apostrophes parsed)
@@ -703,14 +714,18 @@ pitchClassDict =
 
 lookupPitch : String -> PitchClass
 lookupPitch p =
-  Dict.get p pitchClassDict
+  Dict.get (String.toUpper p) pitchClassDict
     |> withDefault C 
-
 
 -- build a key signature
 buildKeySignature : String -> Maybe Accidental -> Maybe Mode -> KeySignature
 buildKeySignature pStr ma mm =
   { pitchClass = lookupPitch pStr, accidental = ma, mode = withDefault Major mm }
+
+-- build a complete key designation (key signature plus modifyinhg accidentals)
+buildKey : Char -> KeySignature -> List KeyAccidental -> Header
+buildKey c ks ka = Key ks ka
+
 
 {- build a bar line 
   this is a bit tricky because of the poor specification for the possible shapes of bar lines 
@@ -746,18 +761,18 @@ buildBarline s i =
     Barline { lines = normalisedLineCount, repeat = repeat, iteration = i }
 
   
-buildNote : Maybe String -> String -> Int -> Maybe Rational -> Maybe Char -> AbcNote
+buildNote : Maybe Accidental -> String -> Int -> Maybe Rational -> Maybe Char -> AbcNote
 buildNote macc pitchStr octave ml mt = 
    let 
      l = withDefault (Ratio.fromInt 1) ml
-     a = buildAccidental macc
+     -- a = buildAccidental macc
      p = lookupPitch (String.toUpper pitchStr)
      spn = scientificPitchNotation pitchStr octave
      tied = case mt of
         Just _ -> True
         _ -> False
    in 
-     { pitchClass = p, accidental = a, octave = spn, duration = l, tied = tied }
+     { pitchClass = p, accidental = macc, octave = spn, duration = l, tied = tied }
 
 {- investigate a note/octave pair and return the octave
    in scientific pitch notation (middle C = 4)
@@ -769,22 +784,28 @@ scientificPitchNotation pc oct =
   else                                         -- pitch class inhabits octave above middle C, oct >= 0
     5 + oct
 
-buildAccidental : Maybe String -> Maybe Accidental
-buildAccidental ms = case ms of
-   Just "^^" -> Just DoubleSharp
-   Just "__" -> Just DoubleFlat
-   Just "^"  -> Just Sharp
-   Just "_"  -> Just Flat
-   Just "="  -> Just Natural
-   _ -> Nothing 
+buildAccidental : String -> Accidental
+buildAccidental s = case s of
+   "^^" -> DoubleSharp
+   "__" -> DoubleFlat
+   "^"  -> Sharp
+   "_"  -> Flat
+   _  -> Natural
 
-buildChord : Maybe String -> List AbcNote -> Maybe Rational ->  AbcChord
+buildKeyAccidental : Accidental -> String -> KeyAccidental
+buildKeyAccidental a pitchStr =
+  let
+    pc = lookupPitch pitchStr
+  in
+    { accidental = a, pitchClass = pc }
+
+buildChord : Maybe Accidental -> List AbcNote -> Maybe Rational ->  AbcChord
 buildChord macc ns ml = 
   let
     l = withDefault (Ratio.fromInt 1) ml
-    a = buildAccidental macc
+    -- a = buildAccidental macc
   in 
-    { notes = ns, accidental = a, duration = l }
+    { notes = ns, accidental = macc, duration = l }
 
 {- build a tuplet signature {p,q,r) - p notes in the time taken for q
    in operation over the next r notes
@@ -845,19 +866,6 @@ restOfInput = many anyChar
 -}
           
 -- exported functions
-
-
-{-
-parse : String -> Result.Result String AbcTune
-parse s =
-  -- case Combine.parse midi s of 
-  case Combine.parse (abc) s of
-    (Ok n, _) ->
-      Ok n
-
-    (Err ms, cx) ->
-      Err ("parse error: " ++ (toString ms) ++ ", " ++ (toString cx))
--}
 
 {-| entry point - Parse an ABC tune image -}
 parse : String -> Result.Result ParseError AbcTune

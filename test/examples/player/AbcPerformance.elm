@@ -19,6 +19,7 @@ module AbcPerformance (  NoteEvent (..)
 -}
 
 import Abc.ParseTree exposing (..)
+import Abc exposing (ParseError)
 import Music.Notation exposing (..)
 import String exposing (fromChar, toUpper)
 import Ratio exposing (Rational, over, fromInt, toFloat, add)
@@ -115,7 +116,8 @@ updateState h acc =
         tnl = List.foldl Ratio.add (fromInt 0) t.noteLengths
       in
        (melody, { state | tempo = { tempo | tempoNoteLength = tnl, bpm = t.bpm }} )
-    Key k ->
+    -- ignore accidental note modifiers in key signatures for the moment - they're little used
+    Key k accs ->
        (melody, { state | keySignature = k} )
     _ -> acc       
     
@@ -273,7 +275,7 @@ fromAbc tune =
          (state.thisBar :: music)
 
 
-fromAbcResult : Result String AbcTune -> Result String MelodyLine
+fromAbcResult : Result ParseError AbcTune -> Result ParseError MelodyLine
 fromAbcResult r =
   Result.map fromAbc r
 

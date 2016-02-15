@@ -19,14 +19,6 @@ Dependencies
 *  circuithub/elm-list-extra 3.9.0
 *  elm-lang/core 3.0.0
 
-Limitations
------------
-
-To do:
-
-*  Dotted grace notes and slurs!
-*  Key signatures with accidentals - e.g. K:D Phr ^f
-
 Deviations from the Spec
 ------------------------
 

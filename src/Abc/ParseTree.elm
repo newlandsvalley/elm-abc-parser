@@ -12,6 +12,7 @@ module Abc.ParseTree
     , Repeat (..)
     , NoteDuration
     , KeySignature
+    , KeyAccidental
     , MeterSignature
     , TempoSignature
     , TupletSignature
@@ -39,6 +40,7 @@ module Abc.ParseTree
     , Repeat
     , NoteDuration
     , KeySignature
+    , KeyAccidental
     , MeterSignature
     , TempoSignature
     , TupletSignature
@@ -170,6 +172,12 @@ type alias KeySignature =
   , mode : Mode
   } 
 
+{-| a Key Accidental (A modification to a standard key for one pitch in the scale) -}
+type alias KeyAccidental = 
+  { pitchClass : PitchClass
+  , accidental : Accidental
+  } 
+
 {-| a Meter Signature - e.g. 3/4 -}
 type alias MeterSignature = (Int, Int)
 
@@ -207,7 +215,7 @@ type Header =
     | Group String
     | History String
     | Instruction String                 -- Directive
-    | Key KeySignature          
+    | Key KeySignature (List KeyAccidental)   
     | UnitNoteLength NoteDuration                   
     | Meter (Maybe MeterSignature)                          
     | Macro String                       
