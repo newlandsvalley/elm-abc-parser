@@ -84,6 +84,7 @@ musicItem = rec <| \() ->
        ]       
     )
 
+
 {- a bar line (plus optional repeat iteration marker)
    see comments in 4.8 Repeat/bar symbols:
    Abc parsers should be quite liberal in recognizing bar lines. In the wild, bar lines may have 
@@ -639,8 +640,8 @@ octaveShift s =
 noteDur : Parser Rational
 noteDur = 
    choice 
-    [ integralAsRational
-    , rational
+    [ rational                -- must come before integral as rational
+    , integralAsRational
     , curtailedRational
     , slashesRational
     ]
