@@ -114,8 +114,9 @@ view : Signal.Address Action -> Model -> Html
 view address model =
   div []
     [ button [ onClick address (Load "abc/lillasystern.abc") ] [ text "lillasystern" ]
-    , button [ onClick address (Load "abc/justnotes.abc") ] [ text "just notes" ]
     , button [ onClick address (Load "abc/PolskaRattvik.abc") ] [ text "Rattvik polska" ]
+    , button [ onClick address (Load "abc/justnotes.abc") ] [ text "just notes" ]
+    , button [ onClick address (Load "abc/tie.abc") ] [ text "tie" ]
     , div [  ] [ text ("parse result: " ++ (viewPerformanceResult model.performance)) ]
     ]
 

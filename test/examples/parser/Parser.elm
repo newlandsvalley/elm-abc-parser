@@ -186,6 +186,9 @@ view address model =
       , li [] [
               button [ onClick address (Load "abc/badinput.abc") ] [ text "bad input" ]
               ]
+      , li [] [
+              button [ onClick address (Load "abc/badheader.abc") ] [ text "bad header" ]
+              ]
       ]
     , div [  ] (checkbox address model.roundTrip RoundTrip "round trip")
     , div [  ] [ 

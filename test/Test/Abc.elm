@@ -94,6 +94,7 @@ tests =
         , test "accidentals" (assertRoundTrip accidentals)
         , test "octave" (assertRoundTrip octave)
         , test "tie" (assertRoundTrip tie)
+        , test "complex tie" (assertRoundTrip complextie)
         , test "repeat" (assertRoundTrip repeat)
         , test "triplet" (assertRoundTrip triplet)
         , test "tuplet" (assertRoundTrip triplet)
@@ -135,6 +136,7 @@ brokenRhythm = "| A>B C>>D a<b c<<d |\r\n"
 accidentals = "| ^A_B c=d_e |\r\n"
 octave = "| A,B,,C z2 d'e''f z/ |\r\n"
 tie = "| A4~ A2 |\r\n"
+complextie = "| fg-ga ab-bc|\r\n"
 repeat = "|: ABCD EFGa |1 D4 C4 :|2 c8 |\r\n"
 triplet = "| (3de^f (3cda |\r\n"
 tuplet = "| (3:2:4d2e2^fg |\r\n"
