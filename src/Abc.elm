@@ -21,6 +21,7 @@ import Combine exposing (..)
 import Combine.Char exposing (..)
 import Combine.Infix exposing (..)
 import Combine.Num exposing (..)
+import Combine.Extra exposing (manyTill')
 import Ratio exposing (Rational, over, fromInt)
 import String exposing (fromList, toList, foldl)
 import Char exposing (fromCode, toCode, isUpper)
@@ -40,26 +41,42 @@ type alias ParseError =
   ,  position : Int
   }
 
-
 -- top level parsers
 abc : Parser AbcTune
-abc = (,) <$> headers <*> body <* end
--- abc = (,) <$> headers <*> many1 body <* restOfInput
+abc = (,) <$> headers <*> body 
 
 -- BODY
 body : Parser (List BodyPart)
-body = (::) <$> score <*> many
+body = manyTill'
         (choice 
           [ score
           , tuneBodyHeader
           ]
-        )
+        ) end
+         
 
+
+{-
+body = (::) <$> score <*> manyTill'
+        (choice 
+          [ score
+          , tuneBodyHeader
+          ]
+        ) end
+-}
+
+{-
 score : Parser BodyPart 
 score = Score <$> musicLine <*> endLine 
 
 musicLine : Parser (List Music)
 musicLine = many musicItem
+-}
+
+
+score : Parser BodyPart 
+score = Score <$> manyTill musicItem eol
+          <?> "score"
 
 musicItem : Parser Music
 musicItem = rec <| \() -> 
@@ -81,8 +98,10 @@ musicItem = rec <| \() ->
        , decoration
        , spacer
        , ignore
+       , continuation
        ]       
     )
+   
 
 
 {- a bar line (plus optional repeat iteration marker)
@@ -444,8 +463,7 @@ unsupportedHeader = succeed UnsupportedHeader <* unsupportedHeaderCode <* strToE
 {- ditto for headers that may appear in the tune body -}
 tuneBodyHeader : Parser BodyPart
 tuneBodyHeader  = BodyInfo <$> tuneBodyInfo <* eol
-
-
+                     <?> "tune body header"
 
 {- whereas information fields can be used inline -}
 informationField : Parser Header
@@ -561,17 +579,11 @@ ignore = succeed Ignore <* (regex "[#@;`\\*\\?]+")
    still prevalent in the wild.  We take the view that we must do our best to recognise 
    them and then throw them away (along with any other later stuff in the line)
 
-   Return True if we have a continuation
+   Return Continuation if we have a continuation
 -}
-continuation : Parser Bool
-continuation = succeed True <* char '\\' <* regex "[^\r\n]*"
-
-endLine : Parser Bool
-endLine = 
-    log "end line" <$>
-          (withDefault False <$> maybe continuation <* regex "(\r\n|\n|\r)" )
-            <?> "end line"
-
+continuation : Parser Music
+continuation = succeed Continuation <* char '\\' <* regex "[^\r\n]*"
+                  <?> "continuation"
 
 headerCode : Char -> Parser Char
 headerCode c = char c <* char ':' <* whiteSpace
@@ -914,8 +926,8 @@ parse s =
 parseError : ParseError -> String
 parseError pe =
   let
-    msg =
-      List.foldr String.append "" pe.msgs
+    append a b = a ++ "," ++ b
+    msg = List.foldr append "" pe.msgs
   in
     "parse error: " ++ msg ++ " on " ++ pe.input ++ " at position " ++ toString (pe.position)
 
