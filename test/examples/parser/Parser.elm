@@ -184,7 +184,13 @@ view address model =
               button [ onClick address (Load "abc/keysig.abc") ] [ text "key signature" ]
               ]
       , li [] [
+              button [ onClick address (Load "abc/tie.abc") ] [ text "tie" ]
+              ]
+      , li [] [
               button [ onClick address (Load "abc/badinput.abc") ] [ text "bad input" ]
+              ]
+      , li [] [
+              button [ onClick address (Load "abc/badinput1.abc") ] [ text "bad input 1" ]
               ]
       , li [] [
               button [ onClick address (Load "abc/badheader.abc") ] [ text "bad header" ]
