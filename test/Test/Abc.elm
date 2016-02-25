@@ -47,8 +47,20 @@ assertParseError s =
     case parseResult of
       Ok res -> 
         assert False
-      Err errs -> 
+      Err err -> 
         assert True
+
+{- assert the input doesn't parse and gives the correct error position -}
+assertErrorPos : String -> Int -> Assertion
+assertErrorPos s pos =
+  let 
+    parseResult = parse s
+  in 
+    case parseResult of
+      Ok res -> 
+        assert False
+      Err err -> 
+        assertEqual pos err.position 
 
 tests : Test
 tests =
@@ -115,8 +127,8 @@ tests =
         ]   
     badInput = 
       suite "bad input"
-        [ test "bad characters 1" (assertParseError badChars1)
-        , test "bad characters 2" (assertParseError badChars2)
+        [ test "bad characters 1" (assertErrorPos badChars1 22)
+        , test "bad characters 2" (assertErrorPos badChars2 3)
         ]
   in
     suite "Music Notation"
