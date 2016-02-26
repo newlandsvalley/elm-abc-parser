@@ -146,12 +146,12 @@ tests =
     lookups =
       suite "lookups"
         [ test "f in G Major" (assertEqual
-               (accidentalImplicitInKey fNatural gMajor)
                (Just Sharp)
+               (accidentalImplicitInKey fNatural gMajor)
                )
         , test "f in C Major" (assertEqual
-               (accidentalImplicitInKey fNatural cMajor)
                (Nothing)
+               (accidentalImplicitInKey fNatural cMajor)
                )
         ]
     in
