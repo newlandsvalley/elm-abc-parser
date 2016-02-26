@@ -13,7 +13,7 @@ To parse an ABC string you can use:
 Dependencies
 ------------
 
-*  Bogdanp/elm-combine 2.0.0
+*  Bogdanp/elm-combine 2.0.2
 *  imeckler/ratio 2.0.0
 *  circuithub/elm-maybe-extra 1.6.0
 *  circuithub/elm-list-extra 3.9.0
