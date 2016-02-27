@@ -95,6 +95,7 @@ tests =
         , test "words aligned" (assertRoundTrip wordsAligned)
         , test "reference number" (assertRoundTrip reference)
         , test "transcriber" (assertRoundTrip transcriber)
+        , test "field continuation" (assertRoundTrip fieldContinuation)
         , test "comment" (assertRoundTrip comment)
         , test "unsupported header" (assertParses unsupportedHeader)
         ]
@@ -191,6 +192,7 @@ wordsAfter = "W: doh re mi fa \r\n| ABC |\r\n"
 wordsAligned = "| ABC |\r\nw: doh re mi fa \r\n| ABC |\r\n"   -- only appears inline
 reference = "X: 125\r\n| ABC |\r\n"
 transcriber = "Z: John Watson\r\n| ABC |\r\n"
+fieldContinuation = "R: Polska\r\n+: in triplet time\r\n| ABC |\r\n"
 comment = "%%TBL:{\"version\":\"beta\",\"type\":\"tune\",\"id\":\"10294\"}\r\n| ABC |\r\n"
 unsupportedHeader = "j: custom header\r\n| ABC |\r\n"
 

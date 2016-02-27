@@ -433,6 +433,11 @@ transcription : Parser Header
 transcription = Transcription <$> ((headerCode 'Z') *> strToEol)
                <?> "Z header"
 
+fieldContinuation : Parser Header
+fieldContinuation = FieldContinuation <$> ((headerCode '+') *> strToEol)
+               <?> "field continuation"
+
+
 {- a header is an information field up to and including the end of line marker -}
 header : Parser Header
 header = informationField <* eol
@@ -490,6 +495,7 @@ anywhereInfo =
          , userDefined
          , voice
          , wordsAfter
+         , fieldContinuation
          , comment
          ]
             <?> "anywhere info"
