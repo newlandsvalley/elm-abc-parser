@@ -9,14 +9,16 @@ import List exposing (..)
 import Maybe exposing (..)
 import String exposing (..)
 import Result exposing (Result, formatError)
+import Performance exposing (..)
 import AbcPerformance exposing (..)
+import Repeats exposing (Repeats, Section)
 import Abc.ParseTree exposing (..)
 import Abc exposing (parse, parseError)
 
 -- MODEL
 
 type alias Model =
-    { performance : Result String MelodyLine
+    { performance : Result String (MelodyLine, Repeats)
     }
 
 init : String -> (Model, Effects Action)
@@ -30,7 +32,7 @@ init topic =
 type Action
     = NoOp
     | Load String
-    | Abc (Result String MelodyLine )
+    | Abc (Result String (MelodyLine, Repeats) )
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
@@ -84,10 +86,10 @@ extractResponse result =
 toInt : String -> Int
 toInt = String.toInt >> Result.toMaybe >> Maybe.withDefault 0
 
-toPerformance : Result String AbcTune -> Result String MelodyLine
+toPerformance : Result String AbcTune -> Result String (MelodyLine, Repeats)
 toPerformance r = Result.map fromAbc r
 
-parseLoadedFile : Result String Value -> Result String MelodyLine
+parseLoadedFile : Result String Value -> Result String (MelodyLine, Repeats)
 parseLoadedFile r = 
   case r of
     Ok text -> case text of
@@ -104,9 +106,9 @@ parseLoadedFile r =
 
 (=>) = (,)
 
-viewPerformanceResult : Result String MelodyLine -> String
+viewPerformanceResult : Result String (MelodyLine, Repeats) -> String
 viewPerformanceResult mr = case mr of
-      Ok res -> "OK: " ++ (toString res)
+      Ok (mel, rpts) -> "OK: " ++ (toString mel) ++ "\nRepeats: " ++ (toString rpts)
       Err errs -> "Fail: " ++ (toString errs)
 
 
