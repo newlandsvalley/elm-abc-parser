@@ -90,7 +90,14 @@ tests =
         , test "A Minor" (assert <| List.isEmpty
              (keySet { pitchClass = A, accidental = Nothing, mode = Minor})
              )       
-        ]
+        ]  
+    klezmerMode = 
+      suite "Klezmer mode"
+        [ test "D Phrygian with sharpened f" (assert <| equivalentKeys 
+             (modifiedKeySet ({ pitchClass = D, accidental = Nothing, mode = Phrygian }, [{ pitchClass = F, accidental = Sharp}]) ) 
+             [ (B, Just Flat), (E, Just Flat), (F, Just Sharp) ]
+             )   
+        ]  
     otherModes =
       suite "Other mode"
         [ test "C Doriam" (assert <| equivalentKeys 
@@ -158,6 +165,7 @@ tests =
       suite "Music Notation"
           [ majorMode
           , minorMode
+          , klezmerMode
           , otherModes
           , lookups
           ]

@@ -12,6 +12,7 @@ module Abc.ParseTree
     , Repeat (..)
     , NoteDuration
     , KeySignature
+    , ModifiedKeySignature
     , KeyAccidental
     , MeterSignature
     , TempoSignature
@@ -41,6 +42,7 @@ module Abc.ParseTree
     , Repeat
     , NoteDuration
     , KeySignature
+    , ModifiedKeySignature
     , KeyAccidental
     , MeterSignature
     , TempoSignature
@@ -174,6 +176,13 @@ type alias KeySignature =
   , accidental : Maybe Accidental
   , mode : Mode
   } 
+
+{-| a Key Signature with modifications (possibly empty)
+    This is used for non-diatonic modes where intervals may be greater than two semitones
+    (for example as found in Klezmer)
+ -}
+type alias ModifiedKeySignature =
+  ( KeySignature, List KeyAccidental )
 
 {-| a Key Accidental (A modification to a standard key for one pitch in the scale) -}
 type alias KeyAccidental = 
