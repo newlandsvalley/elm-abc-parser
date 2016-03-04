@@ -22,6 +22,7 @@ module Abc.ParseTree
     , Accidental (..)
     , PitchClass (..)
     , Broken(..)
+    , middlecOctave
     ) where
 
 {-|  The ABC parser and ABC notation tree
@@ -53,7 +54,8 @@ module Abc.ParseTree
     , PitchClass
     , Broken
 
-# Functions
+# Functions  (constants)
+    middlecOctave
 
 -}
 
@@ -227,7 +229,7 @@ type Header =
     | Group String
     | History String
     | Instruction String                 -- Directive
-    | Key KeySignature (List KeyAccidental)   
+    | Key ModifiedKeySignature           -- a standard key signature possibly modified with accidentals
     | UnitNoteLength NoteDuration                   
     | Meter (Maybe MeterSignature)                          
     | Macro String                       
@@ -249,6 +251,10 @@ type Header =
     | FieldContinuation String
     | Comment String
     | UnsupportedHeader
+
+{-| the octave number of middle C in MIDI parlance -}
+middlecOctave : Int
+middlecOctave = 5
 
 
 
