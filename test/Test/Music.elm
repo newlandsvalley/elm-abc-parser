@@ -154,18 +154,20 @@ tests =
       suite "lookups"
         [ test "f in G Major" (assertEqual
                (Just Sharp)
-               (accidentalImplicitInKey fNatural gMajor)
+               (accidentalImplicitInKey fNatural (gMajor, []))
                )
         , test "f in C Major" (assertEqual
                (Nothing)
-               (accidentalImplicitInKey fNatural cMajor)
+               (accidentalImplicitInKey fNatural (cMajor, []))
                )
         ]
     in
       suite "Music Notation"
-          [ majorMode
-          , minorMode
-          , klezmerMode
-          , otherModes
-          , lookups
-          ]
+        [ majorMode
+        , minorMode
+        , klezmerMode
+        , otherModes
+        , lookups
+        ]
+
+

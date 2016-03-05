@@ -86,6 +86,7 @@ tests =
         , test "parts" (assertRoundTrip parts)
         , test "tempo" (assertRoundTrip tempo)
         , test "complex tempo" (assertRoundTrip tempoComplex)
+        , test "remark" (assertRoundTrip remark)
         , test "rhythm" (assertRoundTrip rhythm)
         , test "source" (assertRoundTrip source)
         , test "title" (assertRoundTrip title)
@@ -98,6 +99,7 @@ tests =
         , test "field continuation" (assertRoundTrip fieldContinuation)
         , test "comment" (assertRoundTrip comment)
         , test "unsupported header" (assertParses unsupportedHeader)
+        , test "bracket in header" (assertRoundTrip bracketInHeader)
         ]
     tune =
       suite "tune"
@@ -130,6 +132,7 @@ tests =
       suite "bad input"
         [ test "bad characters 1" (assertErrorPos badChars1 22)
         , test "bad characters 2" (assertErrorPos badChars2 3)
+        , test "bracket in inline header" (assertErrorPos bracketInInlineHeader 9)
         ]
   in
     suite "Music Notation"
@@ -183,6 +186,7 @@ origin = "O: Skåne\r\n| ABC |\r\n"
 parts = "P: ((AB)3.(CD)3)2\r\n| ABC |\r\n"
 tempo = "Q: 1/4=120\r\n| ABC |\r\n"
 tempoComplex = "Q: 1/4 3/8 1/4 3/8=40 \"allegro\"\r\n| ABC |\r\n"
+remark = "r: this is a remark\r\n| ABC |\r\n"
 rhythm = "R: Polska\r\n| ABC |\r\n"
 source = "S: Christine Dyer\r\n| ABC |\r\n"
 title = "T: Engelska efter Albert Augustsson\r\n| ABC |\r\n"
@@ -195,6 +199,8 @@ transcriber = "Z: John Watson\r\n| ABC |\r\n"
 fieldContinuation = "R: Polska\r\n+: in triplet time\r\n| ABC |\r\n"
 comment = "%%TBL:{\"version\":\"beta\",\"type\":\"tune\",\"id\":\"10294\"}\r\n| ABC |\r\n"
 unsupportedHeader = "j: custom header\r\n| ABC |\r\n"
+bracketInHeader = "r: this is a remark [part 1]\r\n| ABC |\r\n"
+
 
 -- structure
 inline = "| ABC z2 def z/ \r\nQ: 1/4=120\r\n| ABC z2 def z/ |\r\n"
@@ -203,6 +209,7 @@ inlineComment = "| ABC z2 def z/ \r\n%% this is a comment\r\n| ABC z2 def z/ |\r
 -- bad input
 badChars1 = "| ABC z2 def z/ |\r\n| foo bar |\r\n"
 badChars2 = "| foo bar |\r\n| ABC z2 def z/ |\r\n"
+bracketInInlineHeader = "| ABC |\r\nr: this is a remark [part 1]\r\n"
 
 
 
