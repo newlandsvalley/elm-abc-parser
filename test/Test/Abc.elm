@@ -117,6 +117,7 @@ tests =
         , test "grace notes" (assertRoundTrip grace)
         , test "chord symbols" (assertRoundTrip chordSymbols)
         , test "chords" (assertRoundTrip chords)
+        , test "chord duration" (assertRoundTrip chordDuration)
         , test "articulation" (assertRoundTrip articulation)
         , test "ignore" (assertParses ignore)
         , test "typesetSpace" (assertParses typesetSpace)
@@ -160,6 +161,7 @@ slur = "| (de^f) (cda) |\r\n"
 grace = "| {d^f}GA |\r\n"
 chordSymbols = "| \"Em\" EG \"Am\" AC |\r\n"
 chords = "| [de^f]g [cda]b |\r\n"
+chordDuration = "| [cda]4 |\r\n"
 articulation = "(vA2 | !fz!Ld2).d.f .e.d.c.B A2(A2 | d2).d.f .e.d.c.B A2A2 |\r\n"
 ignore = "| ABC# z2 @def z/ |\r\n"
 typesetSpace = "| ABC yz2 defyz/ |\r\n"

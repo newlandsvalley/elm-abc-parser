@@ -188,12 +188,21 @@ buildNewBar nextBarNumber abcBar lastBar =
 
 
 {- translate a sequence of notes as found in chords (parallel) or tuplets (sequential) -}
-translateNoteSequence : Bool -> TranslationState -> List AbcNote -> List NoteEvent
-translateNoteSequence isSeq state notes =
+translateNoteSequence : Bool -> TranslationState -> List AbcNote -> Maybe NoteDuration -> List NoteEvent
+translateNoteSequence isSeq state notes maybeChordDur =
   let
+    -- a chord can have a duration over and above that of any individual note in the chord
+    chordDuration =
+      case maybeChordDur of
+        Nothing -> fromInt 1
+        Just chordDur -> chordDur
     f abc = 
       let 
-        duration = (noteDuration state.tempo abc.duration) * state.tempoModifier
+        duration = 
+          if (isSeq) then
+            (noteDuration state.tempo abc.duration) * state.tempoModifier
+          else
+            (chordalNoteDuration state.tempo abc.duration chordDuration) * state.tempoModifier
         barAccidentals = state.thisBar.accidentals
       in
         { time = duration, pitch = toMidiPitch abc state.modifiedKeySignature barAccidentals, pc = Just abc.pitchClass, accidental = abc.accidental}
@@ -247,7 +256,7 @@ translateMusic m acc =
         let 
           (p,q,r) = signature
           tupletState = { state | tempoModifier = ( Basics.toFloat q / Basics.toFloat p) }
-          tupletNotes = translateNoteSequence True tupletState tnotes
+          tupletNotes = translateNoteSequence True tupletState tnotes Nothing
           newState = addNotesToState tupletNotes state
         in 
           (melodyLine, newState)
@@ -271,7 +280,7 @@ translateMusic m acc =
               (melodyLine, newState)
       Chord abcChord ->
         let 
-          chord = translateNoteSequence False state abcChord.notes
+          chord = translateNoteSequence False state abcChord.notes (Just abcChord.duration)
           newState = addNotesToState chord state
         in             
           (melodyLine, newState)

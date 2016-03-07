@@ -157,6 +157,9 @@ view address model =
               button [ onClick address (Load "abc/Chords.abc") ] [ text "cord sample" ]
               ]
       , li [] [
+              button [ onClick address (Load "abc/chord.abc") ] [ text "one cord sample" ]
+              ]
+      , li [] [
               button [ onClick address (Load "abc/inline.abc") ] [ text "inline info sample" ]
               ]
       , li [] [

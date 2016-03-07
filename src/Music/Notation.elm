@@ -11,6 +11,7 @@ module Music.Notation
   , dotFactor
   , toMidiPitch
   , noteDuration
+  , chordalNoteDuration
   ) where
 
 {-|  Helper functions for making more musical sense of the parse tree
@@ -21,7 +22,13 @@ module Music.Notation
 @docs KeySet, KeyClass, MidiPitch, AbcTempo, NoteTime
 
 # Functions
-@docs keySet, scale, accidentalImplicitInKey, dotFactor, toMidiPitch, noteDuration
+@docs keySet
+    , scale
+    , accidentalImplicitInKey
+    , dotFactor
+    , toMidiPitch
+    , noteDuration  
+    , chordalNoteDuration
 
 -}
 
@@ -186,13 +193,19 @@ toMidiPitch : AbcNote -> ModifiedKeySignature -> KeySet -> MidiPitch
 toMidiPitch n mks barAccidentals =
   (n.octave * 12) + midiPitchOffset n mks barAccidentals
 
-{-| translate a tempo and unit note length to a real world note duration -}
+{-| find a real world note duration by translating an ABC note duration using a tempo and unit note length  -}
 noteDuration : AbcTempo -> Rational -> NoteTime
 noteDuration t n = 
-   (60.0 * (Ratio.toFloat t.unitNoteLength)) / 
-    ((Ratio.toFloat t.tempoNoteLength) * (Basics.toFloat t.bpm)) * 
-     (Ratio.toFloat n)
+   (60.0 * (Ratio.toFloat t.unitNoteLength) *  (Ratio.toFloat n) ) / 
+    ((Ratio.toFloat t.tempoNoteLength) * (Basics.toFloat t.bpm)) 
+    
 
+
+{-| find a real world duration of a note in a chord by translating an ABC note duration together with a chord duration using a tempo and unit note length -}
+chordalNoteDuration : AbcTempo -> Rational -> Rational -> NoteTime
+chordalNoteDuration t note chord = 
+  (60.0 * (Ratio.toFloat t.unitNoteLength)* (Ratio.toFloat note) * (Ratio.toFloat chord)) / 
+    ((Ratio.toFloat t.tempoNoteLength) * (Basics.toFloat t.bpm))
 
 -- implementation
 
