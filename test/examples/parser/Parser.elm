@@ -190,6 +190,9 @@ view address model =
               button [ onClick address (Load "abc/tie.abc") ] [ text "tie" ]
               ]
       , li [] [
+              button [ onClick address (Load "abc/fractionalnote.abc") ] [ text "fractional note" ]
+              ]
+      , li [] [
               button [ onClick address (Load "abc/badinput.abc") ] [ text "bad input" ]
               ]
       , li [] [

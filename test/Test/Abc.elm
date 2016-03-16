@@ -105,6 +105,9 @@ tests =
       suite "tune"
         [ test "note" (assertRoundTrip note)
         , test "fractionalNote" (assertParses fractionalNote)
+        , test "left fractionalNote" (assertParses leftFractionalNote)
+        , test "right fractionalNote" (assertParses rightFractionalNote)
+        , test "double fractionalNote" (assertParses doubleFractionalNote)
         , test "broken rhythm" (assertRoundTrip brokenRhythm)
         , test "accidentals" (assertRoundTrip accidentals)
         , test "octave" (assertRoundTrip octave)
@@ -149,6 +152,9 @@ tests =
 -- music
 note = "| ABC z2 def z/ |\r\n"
 fractionalNote = "| A/2 B3/2 c/ |\r\n"
+leftFractionalNote = "| A3/ |\r\n"
+rightFractionalNote = "| A/3 |\r\n"
+doubleFractionalNote = "| A// |\r\n"
 brokenRhythm = "| A>B C>>D a<b c<<d |\r\n"
 accidentals = "| ^A_B c=d_e |\r\n"
 octave = "| A,B,,C z2 d'e''f z/ |\r\n"
