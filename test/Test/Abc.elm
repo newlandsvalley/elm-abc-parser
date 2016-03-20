@@ -50,6 +50,18 @@ assertParseError s =
       Err err -> 
         assert True
 
+{- assert the input parses and the canonicalised tune equals the target -}
+assertCanonicalMatches : String -> String -> Assertion
+assertCanonicalMatches s target = 
+  let 
+    parseResult = parse s
+  in 
+    case parseResult of
+      Ok res -> 
+        assertEqual target (fromTune res)
+      Err errs -> 
+        assert False
+
 {- assert the input doesn't parse and gives the correct error position -}
 assertErrorPos : String -> Int -> Assertion
 assertErrorPos s pos =
@@ -138,12 +150,18 @@ tests =
         , test "bad characters 2" (assertErrorPos badChars2 3)
         , test "bracket in inline header" (assertErrorPos bracketInInlineHeader 9)
         ]
+    canonical = 
+      suite "canonical"
+        [ test "implied accidentals in key" (assertRoundTrip canonicalised)
+        , test "explicit accidentals" (assertCanonicalMatches uncanonicalised canonicalised)
+        ]
   in
     suite "Music Notation"
       [  header
       ,  tune
       ,  structure
       ,  badInput
+      ,  canonical
       ]
 
 -- these ABC samples must already be in canonical format for round-tripping to work
@@ -218,6 +236,10 @@ inlineComment = "| ABC z2 def z/ \r\n%% this is a comment\r\n| ABC z2 def z/ |\r
 badChars1 = "| ABC z2 def z/ |\r\n| foo bar |\r\n"
 badChars2 = "| foo bar |\r\n| ABC z2 def z/ |\r\n"
 bracketInInlineHeader = "| ABC |\r\nr: this is a remark [part 1]\r\n"
+
+-- canonical
+canonicalised = "K: DMajor\r\n| ACF |\r\n"      -- C and F are implictly sharpened and should remain implicit in canonical
+uncanonicalised = "K: DMajor\r\n| A^C^F |\r\n"  -- should be canonicalised to 'canonicalised'
 
 
 

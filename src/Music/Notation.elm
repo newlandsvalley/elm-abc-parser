@@ -9,6 +9,7 @@ module Music.Notation
   , scale
   , isCOrSharpKey
   , accidentalImplicitInKey
+  , accidentalInKeySet
   , dotFactor
   , toMidiPitch
   , noteDuration
@@ -27,6 +28,7 @@ module Music.Notation
     , scale
     , isCOrSharpKey
     , accidentalImplicitInKey
+    , accidentalInKeySet
     , dotFactor
     , toMidiPitch
     , noteDuration  

@@ -16,7 +16,7 @@ import Abc.ParseTree exposing (..)
 import Ratio exposing (Rational, numerator, denominator)
 import Maybe exposing (withDefault)
 import Maybe.Extra exposing (isJust, join)
-import Music.Notation exposing (KeySet, modifiedKeySet)
+import Music.Notation exposing (KeySet, modifiedKeySet, accidentalInKeySet)
 import String exposing (fromChar, fromList, repeat, trimRight, toLower)
 
 enquote : String -> String
@@ -164,11 +164,16 @@ pitch octave p =
   else
     toLower (toString p)   
 
-abcNote : AbcNote -> String
-abcNote a =
+abcNote : AbcNote -> KeySet -> String
+abcNote a ks =
   let
-     acc = withDefault ""
-            (Maybe.map accidental a.accidental)
+     -- detect whether this possible accidental is present in the key set
+     mkeySetAcc = accidentalInKeySet a ks
+     -- if so, we need to forget about it because it's already implicit in the key signature 
+     acc = case mkeySetAcc of
+       Just _ -> ""
+       Nothing -> Maybe.map accidental a.accidental
+                    |> withDefault ""
      tie = case a.tied of
        True -> "-"
        _ -> ""
@@ -179,15 +184,15 @@ abcNote a =
      ++ duration a.duration
      ++ tie
 
-abcChord : AbcChord -> String
-abcChord a =
-     "[" ++ (notes a.notes) ++ "]"
+abcChord : AbcChord -> KeySet -> String
+abcChord a ks =
+     "[" ++ (notes a.notes ks) ++ "]"
        ++ duration a.duration
      
-notes : List AbcNote -> String
-notes ns = 
+notes : List AbcNote -> KeySet -> String
+notes ns ks = 
   let 
-    f a acc = (abcNote a) ++ acc
+    f a acc = (abcNote a ks) ++ acc
   in
     List.foldr f "" ns   
      
@@ -202,10 +207,10 @@ decorate s =
   else 
     "!" ++ s ++ "!"
     
-musics : List Music-> String
-musics ms = 
+musics : List Music-> KeySet -> String
+musics ms ks = 
   let 
-    f m acc = (music m) ++ acc
+    f m acc = (music m ks) ++ acc
   in
     List.foldr f "" ms      
 
@@ -217,21 +222,21 @@ broken b =
     RightArrow i -> 
       String.repeat i ">"
      
-music : Music -> String
-music m = case m of
+music : Music -> KeySet -> String
+music m ks = case m of
    Barline b -> bar b
-   Note a -> abcNote a
-   BrokenRhythmPair a1 b a2 -> abcNote a1 ++ (broken b) ++ abcNote a2
+   Note a -> abcNote a ks
+   BrokenRhythmPair a1 b a2 -> abcNote a1 ks ++ (broken b) ++ abcNote a2 ks
    Rest r -> rest r
-   Tuplet tup ns -> tuplet tup ++ notes ns
+   Tuplet tup ns -> tuplet tup ++ notes ns ks
    Decoration s -> decorate s
-   GraceNote isAcciaccatura m -> "{" ++ music m ++ "}"
+   GraceNote isAcciaccatura m -> "{" ++ music m ks ++ "}"
    Slur c -> String.fromChar c
    Annotation placement s -> toString placement ++ ":" ++ s 
    ChordSymbol s -> enquote s
-   Chord a -> abcChord a
+   Chord a -> abcChord a ks
    Inline h -> "[" ++ header h ++ "]"
-   NoteSequence ms -> musics ms
+   NoteSequence ms -> musics ms ks
    Spacer i -> " "
    Ignore -> ""
    Continuation -> "\\"
@@ -276,9 +281,9 @@ tuneHeaders  hs =
   in
     List.foldr f "" hs
     
-bodyPart : BodyPart -> String
-bodyPart bp = case bp of
-  Score ml -> musics ml  
+bodyPart : BodyPart -> KeySet -> String
+bodyPart bp ks = case bp of
+  Score ml -> musics ml ks
   BodyInfo h ->  header h
 
 continuation : Bool -> String
@@ -288,10 +293,10 @@ continuation c =
   else 
     ""
   
-tuneBody : TuneBody -> String
-tuneBody b = 
+tuneBody : TuneBody -> KeySet -> String
+tuneBody b ks = 
   let 
-    f bp acc = (bodyPart bp) ++ "\r\n" ++ acc
+    f bp acc = (bodyPart bp ks) ++ "\r\n" ++ acc
   in
     List.foldr f "" b
 
@@ -328,7 +333,10 @@ getKeySig t =
 {-| translate an ABC Tune parse tree to a canonical ABC String -}
 fromTune : AbcTune -> String
 fromTune t = 
-  tuneHeaders (fst t) ++ tuneBody (snd t)
+  let
+    ks = getKeySet t
+  in
+    tuneHeaders (fst t) ++ tuneBody (snd t) ks
 
 
 {-| translate a parse Result containing an ABC Tune parse tree to a Result containing a canonical ABC String -}
