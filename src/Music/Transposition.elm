@@ -1,6 +1,7 @@
 module Music.Transposition
   ( 
     keyDistance
+  , transposeNote
   ) where
 
 {-|  Module for score transposition
@@ -9,6 +10,7 @@ module Music.Transposition
 
 # Functions
 @docs keyDistance
+    , transposeNote
 
 WARNING - NOT COMPLETE
 
@@ -18,6 +20,12 @@ import Dict exposing (Dict, fromList, get)
 import Maybe exposing (withDefault)
 import Result exposing (Result)
 import Abc.ParseTree exposing (..)
+import Music.Notation exposing (isCOrSharpKey)
+
+import Debug exposing (..)
+
+notesInDiatonicScale : Int
+notesInDiatonicScale = 12
 
 {- PUBLISHED API -}
 
@@ -31,17 +39,38 @@ keyDistance target src =
   else
     Ok (transpositionDistance (target.pitchClass, target.accidental) (src.pitchClass, src.accidental))
 
-{- transpose a note from its source key to its target NOT FINISHED -}
+{- transpose a note from its source key to its target  -}
 transposeNote : KeySignature -> KeySignature -> AbcNote -> Result String AbcNote
 transposeNote targetKey srcKey note =
   if (targetKey.mode /= srcKey.mode) then
     Err "incompatible modes"
   else
     let 
-      dist = (transpositionDistance (targetKey.pitchClass, targetKey.accidental) (srcKey.pitchClass, srcKey.accidental))
-      srcNum = noteNumber note
+      srcNum = log "note num" (noteNumber note)
+      dist = log "distance" (transpositionDistance (targetKey.pitchClass, targetKey.accidental) (srcKey.pitchClass, srcKey.accidental))
+      (targetNum, octaveIncrement) = noteIndex srcNum dist
+      (pc, acc) = pitchFromInt targetKey targetNum
+      macc = case acc of
+        Natural -> Nothing
+        x -> Just x
   in
-    Ok note
+    Ok { note | pitchClass = pc, accidental = macc, octave= note.octave + octaveIncrement }
+
+{- inspect the current note index and the amount it is to be incremented by
+   produce a new note index in the range (0 <= n < notesInDiatonicScale)
+   and associate with this a number (-1,0,1) which indicates an increment to the octave
+-}
+noteIndex : Int -> Int -> (Int, Int)
+noteIndex from increment =
+  let
+    to = (from + increment)
+  in 
+    if to < 0 then
+      ((notesInDiatonicScale + to), -1)
+    else if (to >= notesInDiatonicScale) then
+      ((to - notesInDiatonicScale), 1)
+    else
+      (to, 0)
 
 
 {- IMPLEMENTATION -}
@@ -115,6 +144,43 @@ flatNoteNumbers =
           || (a == Natural)
   in
     List.filter f noteNumbers
+
+pitchFromInt : KeySignature -> Int -> (PitchClass, Accidental)
+pitchFromInt ks i =
+  let
+    _ = log "pitchFromInt" i
+    dict =
+      if (isCOrSharpKey ks) then
+        sharpNotedNumbers
+      else
+        flatNotedNumbers
+  in
+    Dict.get i dict
+      |> withDefault (C, Natural)
+
+{- the inverted lookup for sharp chromatic scales.  This dictionaary
+   allows you to enter a number between 0 and 11 and return a
+   (pitchClass, Accidental) pair which is the note's pitch
+-}
+sharpNotedNumbers : Dict Int (PitchClass, Accidental)
+sharpNotedNumbers =
+  let
+    invert (a, b) = (b, a)
+  in
+    List.map invert sharpNoteNumbers
+      |> Dict.fromList 
+
+{- the inverted lookup for flat chromatic scales.  This dictionaary
+   allows you to enter a number between 0 and 11 and return a
+   (pitchClass, Accidental) pair which is the note's pitch
+-}
+flatNotedNumbers : Dict Int (PitchClass, Accidental)
+flatNotedNumbers =
+  let
+    invert (a, b) = (b, a)
+  in
+    List.map invert flatNoteNumbers
+      |> Dict.fromList 
 
 {- make a note's pitch comparable by translating to a string
    so it can be used in dictionaries
