@@ -21,6 +21,9 @@ fNatural = { pitchClass = F,  accidental = Nothing, octave = 4, duration = fromI
 gMajor : KeySignature
 gMajor = { pitchClass = G, accidental = Nothing, mode = Major }
 
+gMinor : KeySignature
+gMinor = { pitchClass = G, accidental = Nothing, mode = Minor }
+
 cMajor : KeySignature
 cMajor = { pitchClass = C, accidental = Nothing, mode = Major }
 
@@ -178,6 +181,9 @@ tests =
                )
         , test "F is not a sharp key" (assert 
                  (not (isCOrSharpKey fMajor))
+               )
+        , test "Gm is not a sharp key" (assert 
+                 (not (isCOrSharpKey gMinor))
                )
         ]   
     in
