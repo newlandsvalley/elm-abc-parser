@@ -24,6 +24,12 @@ gMajor = { pitchClass = G, accidental = Nothing, mode = Major }
 cMajor : KeySignature
 cMajor = { pitchClass = C, accidental = Nothing, mode = Major }
 
+dMajor : KeySignature
+dMajor = { pitchClass = D, accidental = Nothing, mode = Major }
+
+fMajor : KeySignature
+fMajor = { pitchClass = F, accidental = Nothing, mode = Major }
+
 tests : Test
 tests =
   let 
@@ -160,7 +166,20 @@ tests =
                (Nothing)
                (accidentalImplicitInKey fNatural (cMajor, []))
                )
-        ]
+
+        ]   
+    keys =
+      suite "keys"
+        [ test "D is a sharp key" (assert 
+                 (isCOrSharpKey dMajor)
+               )
+        , test "C is an (honourary) sharp key" (assert 
+                 (isCOrSharpKey cMajor)
+               )
+        , test "F is not a sharp key" (assert 
+                 (not (isCOrSharpKey fMajor))
+               )
+        ]   
     in
       suite "Music Notation"
         [ majorMode
@@ -168,6 +187,7 @@ tests =
         , klezmerMode
         , otherModes
         , lookups
+        , keys
         ]
 
 

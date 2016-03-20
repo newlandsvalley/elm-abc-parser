@@ -7,6 +7,7 @@ module Music.Notation
   , keySet
   , modifiedKeySet
   , scale
+  , isCOrSharpKey
   , accidentalImplicitInKey
   , dotFactor
   , toMidiPitch
@@ -24,6 +25,7 @@ module Music.Notation
 # Functions
 @docs keySet
     , scale
+    , isCOrSharpKey
     , accidentalImplicitInKey
     , dotFactor
     , toMidiPitch
@@ -103,6 +105,17 @@ scale ks =
         majorScale target
       m ->
         modalScale target ks.mode
+
+{- return True if the key signature is a sharp key or a simple C Major key -}
+isCOrSharpKey : KeySignature -> Bool
+isCOrSharpKey ksig =
+  let
+    kset = keySet ksig
+    -- if we make the default (for an empty list) as a samplemsharp then we return true for the scale of C Major
+    (samplePC, sampleMacc) = List.head kset
+                               |> withDefault (C, Just Sharp)
+  in
+    sampleMacc == Just Sharp
 
 {-| return an accidental if it is implicitly there in the (modified) key signature 
     attached to the pitch class of the note -}
