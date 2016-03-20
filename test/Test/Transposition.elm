@@ -8,9 +8,12 @@ import Result exposing (..)
 import Ratio exposing (Rational, over, fromInt)
 import String
 
--- note c sharp is in octave 5 al the other notes are in octave 4 
+-- note C Sharp and D Sharp are in octave 5 al the other notes are in octave 4 
 cs : AbcNote
 cs = { pitchClass = C,  accidental = Just Sharp, octave = 5, duration = fromInt 1, tied = False }
+
+ds : AbcNote
+ds = { pitchClass = D,  accidental = Just Sharp, octave = 5, duration = fromInt 1, tied = False }
 
 eb : AbcNote
 eb = { pitchClass = E,  accidental = Just Flat, octave = 4, duration = fromInt 1, tied = False }
@@ -80,6 +83,10 @@ tests =
         , test "C# in AMaj to GMaj" (assertEqual
                (Ok b)
                (transposeNote gMajor aMajor cs)
+               )       
+        , test "C# in GMaj to AMaj" (assertEqual
+               (Ok ds)
+               (transposeNote aMajor gMajor cs)
                )
         ]
     in

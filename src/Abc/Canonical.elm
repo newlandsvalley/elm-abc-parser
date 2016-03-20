@@ -15,6 +15,8 @@ module Abc.Canonical
 import Abc.ParseTree exposing (..)
 import Ratio exposing (Rational, numerator, denominator)
 import Maybe exposing (withDefault)
+import Maybe.Extra exposing (isJust, join)
+import Music.Notation exposing (KeySet, modifiedKeySet)
 import String exposing (fromChar, fromList, repeat, trimRight, toLower)
 
 enquote : String -> String
@@ -179,13 +181,8 @@ abcNote a =
 
 abcChord : AbcChord -> String
 abcChord a =
-  let
-     acc = withDefault ""
-            (Maybe.map accidental a.accidental)
-  in
-     acc 
-     ++ "[" ++ (notes a.notes) ++ "]"
-     ++ duration a.duration
+     "[" ++ (notes a.notes) ++ "]"
+       ++ duration a.duration
      
 notes : List AbcNote -> String
 notes ns = 
@@ -297,6 +294,34 @@ tuneBody b =
     f bp acc = (bodyPart bp) ++ "\r\n" ++ acc
   in
     List.foldr f "" b
+
+{- get set of key accidentals from the key (if there is one in the tune) 
+
+   This is used in order to suppress any accidentals in a note as it appears in a score
+   if they are already implied by the key signature
+-}
+getKeySet : AbcTune -> KeySet
+getKeySet t =
+  let
+    mksig = getKeySig t
+  in case mksig of
+    Just ksig -> modifiedKeySet ksig
+    Nothing -> []
+
+{- get the key signature (if any) from the tune -}
+getKeySig : AbcTune -> Maybe ModifiedKeySignature
+getKeySig t =
+  let
+    headers = fst t
+    f h = case h of
+      Key mks -> Just mks
+      _ -> Nothing
+    ksigs = List.map f headers
+      |> List.filter isJust
+  in 
+    List.head ksigs
+     |> join
+   
   
 -- Exported Functions
 

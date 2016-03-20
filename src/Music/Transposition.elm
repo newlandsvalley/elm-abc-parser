@@ -27,10 +27,10 @@ import Debug exposing (..)
 notesInDiatonicScale : Int
 notesInDiatonicScale = 12
 
-{- PUBLISHED API -}
+{- EXPOSED API -}
 
 {- work out the distance between the keys (target - source) measured in semitones 
-   which must be in compaitble modes  
+   which must be in compatible modes  
 -} 
 keyDistance : KeySignature -> KeySignature -> Result String Int
 keyDistance target src =
@@ -39,7 +39,7 @@ keyDistance target src =
   else
     Ok (transpositionDistance (target.pitchClass, target.accidental) (src.pitchClass, src.accidental))
 
-{- transpose a note from its source key to its target  -}
+{- transpose a note from its source key to its target -}
 transposeNote : KeySignature -> KeySignature -> AbcNote -> Result String AbcNote
 transposeNote targetKey srcKey note =
   if (targetKey.mode /= srcKey.mode) then
@@ -54,9 +54,9 @@ transposeNote targetKey srcKey note =
         Natural -> Nothing
         x -> Just x
   in
-    Ok { note | pitchClass = pc, accidental = macc, octave= note.octave + octaveIncrement }
+    Ok { note | pitchClass = pc, accidental = macc, octave = note.octave + octaveIncrement }
 
-{- inspect the current note index and the amount it is to be incremented by
+{- inspect the current note index and the amount it is to be incremented by.
    produce a new note index in the range (0 <= n < notesInDiatonicScale)
    and associate with this a number (-1,0,1) which indicates an increment to the octave
 -}
@@ -145,6 +145,9 @@ flatNoteNumbers =
   in
     List.filter f noteNumbers
 
+{- given a key signature and an integer (0 <= n < notesInDiatonicScale)
+   return the pitch of the note within that signature
+-}
 pitchFromInt : KeySignature -> Int -> (PitchClass, Accidental)
 pitchFromInt ks i =
   let
@@ -159,8 +162,8 @@ pitchFromInt ks i =
       |> withDefault (C, Natural)
 
 {- the inverted lookup for sharp chromatic scales.  This dictionaary
-   allows you to enter a number between 0 and 11 and return a
-   (pitchClass, Accidental) pair which is the note's pitch
+   allows you to enter a number (0 <= n < notesInDiatonicScale) and return
+   a (pitchClass, Accidental) pair which is the note's pitch
 -}
 sharpNotedNumbers : Dict Int (PitchClass, Accidental)
 sharpNotedNumbers =
@@ -171,8 +174,8 @@ sharpNotedNumbers =
       |> Dict.fromList 
 
 {- the inverted lookup for flat chromatic scales.  This dictionaary
-   allows you to enter a number between 0 and 11 and return a
-   (pitchClass, Accidental) pair which is the note's pitch
+   allows you to enter a number (0 <= n < notesInDiatonicScale) and return 
+   a (pitchClass, Accidental) pair which is the note's pitch
 -}
 flatNotedNumbers : Dict Int (PitchClass, Accidental)
 flatNotedNumbers =
@@ -216,12 +219,12 @@ lookupChromatic dict target =
     Dict.get target dict
       |> withDefault 0
 
-{- look up the pitch and return a number in the range 0-11 (0 is C Natural) -}
+{- look up the pitch and return a number in the range 0 <= n < notesInDiatonicScale  (0 is C Natural) -}
 pitchNumber : (PitchClass, Accidental) -> Int
 pitchNumber pa =
   lookupChromatic chromaticScaleDict (comparableNote pa) 
 
-{- look up the note and return the number of its pitch in the range 0-11 (0 is C Natural) -}
+{- look up the note and return the number of its pitch in the range 0 <= n < notesInDiatonicScale (0 is C Natural) -}
 noteNumber : AbcNote -> Int
 noteNumber n =
   let
