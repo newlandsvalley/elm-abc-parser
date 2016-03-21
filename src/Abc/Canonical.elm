@@ -15,8 +15,10 @@ module Abc.Canonical
 import Abc.ParseTree exposing (..)
 import Ratio exposing (Rational, numerator, denominator)
 import Maybe exposing (withDefault)
-import Music.Notation exposing (KeySet, getKeySet, accidentalInKeySet)
+import Music.Notation exposing (KeySet, getKeySet, naturaliseIfInKeySet)
 import String exposing (fromChar, fromList, repeat, trimRight, toLower)
+
+
 
 enquote : String -> String
 enquote s = "\"" ++ s ++ "\""
@@ -164,14 +166,11 @@ pitch octave p =
     toLower (toString p)   
 
 abcNote : AbcNote -> KeySet -> String
-abcNote a ks =
+abcNote originala ks =
   let
-     -- detect whether this possible accidental is present in the key set
-     mkeySetAcc = accidentalInKeySet a ks
-     -- if so, we need to forget about it because it's already implicit in the key signature 
-     acc = case mkeySetAcc of
-       Just _ -> ""
-       Nothing -> Maybe.map accidental a.accidental
+     -- forget about the accidental if it's implied by the key signature
+     a = naturaliseIfInKeySet originala ks
+     acc  = Maybe.map accidental a.accidental
                     |> withDefault ""
      tie = case a.tied of
        True -> "-"

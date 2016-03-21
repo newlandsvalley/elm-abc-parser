@@ -12,6 +12,7 @@ module Music.Notation
   , isCOrSharpKey
   , accidentalImplicitInKey
   , accidentalInKeySet
+  , naturaliseIfInKeySet
   , dotFactor
   , toMidiPitch
   , noteDuration
@@ -34,6 +35,7 @@ module Music.Notation
     , isCOrSharpKey
     , accidentalImplicitInKey
     , accidentalInKeySet
+    , naturaliseIfInKeySet
     , dotFactor
     , toMidiPitch
     , noteDuration  
@@ -49,6 +51,9 @@ import String exposing (contains, endsWith, fromChar)
 import Dict exposing (Dict, fromList, get)
 import Abc.ParseTree exposing (..)
 import Ratio exposing (Rational, over, fromInt, toFloat, add)
+
+
+import Debug exposing (..)
 
 {-| a complete pitch class (the white note and the accidental) -}
 type alias KeyClass = (PitchClass, Maybe Accidental)
@@ -172,6 +177,22 @@ accidentalInKeySet n ks =
     Dict.get (toString n.pitchClass) lookup
       |> join
 
+{- If the actual (PitchClass, maybe Accidental) within the note exists in the key set, 
+   return the note with the pitch naturalised, otherwise leave it intact.
+   This is the reverse operation to accidentalInKeySet and is used when looking up a note
+   which is explictly marked with an accidental in order to display it as text
+   because the accidental is implied by the key signature
+-}
+naturaliseIfInKeySet : AbcNote -> KeySet -> AbcNote
+naturaliseIfInKeySet n ks =
+  let 
+    -- target = log "naturalise looking for " (n.pitchClass, n.accidental)
+    target = (n.pitchClass, n.accidental)
+  in
+    if (List.member target ks) then
+      {n | accidental = Nothing }
+    else
+      n
 
 {- modify a key set with a new accidental -}
 modifyKeySet : KeyAccidental -> KeySet -> KeySet

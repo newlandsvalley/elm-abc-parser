@@ -8,7 +8,9 @@ The intention is to provide a fully conformant parser for individually presented
 To parse an ABC string you can use:
 
     abc
-     |> parse
+     |> parse 
+     
+Additional facilities exist in the Music modules to manipulate the parse tree in order (for example) to transpose a tune.
      
 Dependencies
 ------------

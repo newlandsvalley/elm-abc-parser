@@ -2,25 +2,44 @@ module Music.Transposition
   ( 
     keyDistance
   , transposeNote
+  , transposeNoteBy
+  , transposeTo
   ) where
 
-{-|  Module for score transposition
+{-|  Experimental Module for tune transposition
+
+You can transpose a parsed ABC tune (in whatever key - perhaps in C) to (say) G# using:
+
+    transposedResult = formatError (\_ -> "parse error") (parse source)
+        `andThen` (\tune -> transposeTo ({pitchClass = G, accidental = Just Sharp, mode = Major},[]) tune)
+
+
+The mode before and after transposition must be identical (that is: you cannot transpose minor to major and so on).
+Chord symbols will be lost on transposition.
 
 # Definition
 
 # Functions
 @docs keyDistance
     , transposeNote
+    , transposeNoteBy
+    , transposeTo
 
-WARNING - NOT COMPLETE
+WARNING - NOT COMPLETE; NOT FULLY TESTED
 
+-}
+
+{- A parse tree score contains implicit accidentals.  Very often, the source text will not mark them but assume that they
+   are implicit in the key signature.  In order for the transposition process to work, all accidentals must be made
+   explicit during transposition and then (perhaps) made implicit when wtitten out to text
 -}
 
 import Dict exposing (Dict, fromList, get)
 import Maybe exposing (withDefault)
+import Maybe.Extra exposing (isJust)
 import Result exposing (Result)
 import Abc.ParseTree exposing (..)
-import Music.Notation exposing (isCOrSharpKey, getKeySig)
+import Music.Notation exposing (isCOrSharpKey, getKeySig, accidentalImplicitInKey)
 
 import Debug exposing (..)
 
@@ -32,30 +51,42 @@ notesInDiatonicScale = 12
 {- work out the distance between the keys (target - source) measured in semitones 
    which must be in compatible modes  
 -} 
-keyDistance : KeySignature -> KeySignature -> Result String Int
-keyDistance target src =
-  if (target.mode /= src.mode) then
-    Err "incompatible modes"
-  else
-    Ok (transpositionDistance (target.pitchClass, target.accidental) (src.pitchClass, src.accidental))
+keyDistance : ModifiedKeySignature -> ModifiedKeySignature -> Result String Int
+keyDistance targetmks srcmks =
+  let
+     target = fst targetmks
+     src = fst srcmks
+  in
+    if (target.mode /= src.mode) then
+      Err "incompatible modes"
+    else
+      Ok (transpositionDistance (target.pitchClass, target.accidental) (src.pitchClass, src.accidental))
 
 {- transpose a note from its source key to its target -}
-transposeNote : KeySignature -> KeySignature -> AbcNote -> Result String AbcNote
+transposeNote : ModifiedKeySignature -> ModifiedKeySignature -> AbcNote -> Result String AbcNote
 transposeNote targetKey srcKey note =
   let
     rdist = keyDistance targetKey srcKey
   in
     case rdist of
       Err e -> Err e
-      Ok d  -> Ok (transposeNoteBy targetKey d note)
+      Ok d  -> Ok (transposeNoteBy targetKey srcKey d note)
 
 {-| transpose a note by the required distance which may be positive or negative -}
-transposeNoteBy : KeySignature -> Int -> AbcNote -> AbcNote
-transposeNoteBy targetKey dist note =
+transposeNoteBy : ModifiedKeySignature -> ModifiedKeySignature -> Int -> AbcNote -> AbcNote
+transposeNoteBy targetKs srcks dist note =
   let
-    srcNum = noteNumber note
-    (targetNum, octaveIncrement) = noteIndex srcNum dist
-    (pc, acc) = pitchFromInt targetKey targetNum
+    -- make any implicit accidental explicit in the note to be transposed if it's not marked as an accidental
+    inKeyAccidental = accidentalImplicitInKey note srcks
+    explicitNote = 
+      if (isJust note.accidental) then
+        note
+      else 
+        { note | accidental = inKeyAccidental }
+    _ = log "note to transpose" note
+    srcNum = log "src num" (noteNumber explicitNote)
+    (targetNum, octaveIncrement) = log "note index" (noteIndex srcNum dist)
+    (pc, acc) = pitchFromInt (fst targetKs) targetNum
     macc = case acc of
       Natural -> Nothing
       x -> Just x
@@ -67,58 +98,58 @@ transposeTo : ModifiedKeySignature -> AbcTune -> Result String AbcTune
 transposeTo targetmks t =
   let
     -- get the key signature if there is one, default to C Major
-    mks = getKeySig t
-           |> withDefault ( {pitchClass = C, accidental = Nothing, mode = Major}, [])
+    mks = log "transpose from key" (getKeySig t
+           |> withDefault ( {pitchClass = C, accidental = Nothing, mode = Major}, []))
     -- find the distance between the keys
-    rdistance = keyDistance (fst targetmks) (fst mks)
+    rdistance = keyDistance targetmks mks
   in
     case rdistance of
       Err e -> Err e
-      Ok d -> Ok t      
+      Ok d -> Ok (transposeTune targetmks mks d t)
 
 -- Implementation
-transposeTune : ModifiedKeySignature -> Int -> AbcTune -> AbcTune
-transposeTune mks i t =
+transposeTune : ModifiedKeySignature -> ModifiedKeySignature -> Int -> AbcTune -> AbcTune
+transposeTune targetks srcks i t =
   let
-    ks = fst mks
     (headers, body) = t
+    newHeaders = replaceKeyHeader targetks headers
   in
-    (headers, (transposeTuneBody ks i body))
+    (newHeaders, (transposeTuneBody targetks srcks i body))
 
-transposeTuneBody : KeySignature -> Int -> TuneBody -> TuneBody
-transposeTuneBody ks i  =
-  List.map (transposeBodyPart ks i)
+transposeTuneBody : ModifiedKeySignature -> ModifiedKeySignature -> Int -> TuneBody -> TuneBody
+transposeTuneBody targetks srcks i  =
+  List.map (transposeBodyPart targetks srcks i)
 
-transposeBodyPart : KeySignature -> Int -> BodyPart -> BodyPart
-transposeBodyPart ks i bp =
+transposeBodyPart : ModifiedKeySignature -> ModifiedKeySignature -> Int -> BodyPart -> BodyPart
+transposeBodyPart targetks srcks i bp =
   case bp of
-    Score ms -> Score (transposeMusicList ks i ms)
+    Score ms -> Score (transposeMusicList targetks srcks i ms)
     _ -> bp
 
-transposeMusic : KeySignature -> Int -> Music -> Music
-transposeMusic ks i m =
+transposeMusic : ModifiedKeySignature -> ModifiedKeySignature -> Int -> Music -> Music
+transposeMusic targetks srcks i m =
   case m of
-    Note n -> Note (transposeNoteBy ks i n)
-    BrokenRhythmPair n1 b n2 ->  BrokenRhythmPair (transposeNoteBy ks i n1) b (transposeNoteBy ks i n2)
-    Tuplet ts ns -> Tuplet ts (transposeNoteList ks i ns)
-    GraceNote b m -> GraceNote b (transposeMusic ks i m)
-    Chord c -> Chord (transposeChord ks i c)
-    NoteSequence ms -> NoteSequence  (transposeMusicList ks i ms)
+    Note n -> Note (transposeNoteBy targetks srcks i n)
+    BrokenRhythmPair n1 b n2 ->  BrokenRhythmPair (transposeNoteBy targetks srcks i n1) b (transposeNoteBy targetks srcks i n2)
+    Tuplet ts ns -> Tuplet ts (transposeNoteList targetks srcks i ns)
+    GraceNote b m -> GraceNote b (transposeMusic targetks srcks i m)
+    Chord c -> Chord (transposeChord targetks srcks i c)
+    NoteSequence ms -> NoteSequence  (transposeMusicList targetks srcks i ms)
     -- we won't attempt to transpose chord symbols - just quietly drop them
     ChordSymbol s -> Ignore   
     _ -> m
 
-transposeMusicList : KeySignature -> Int -> List Music -> List Music
-transposeMusicList ks i =
-  List.map (transposeMusic ks i)
+transposeMusicList : ModifiedKeySignature -> ModifiedKeySignature -> Int -> List Music -> List Music
+transposeMusicList targetks srcks i =
+  List.map (transposeMusic targetks srcks i)
 
-transposeNoteList : KeySignature -> Int -> List AbcNote -> List AbcNote
-transposeNoteList ks i =
-  List.map (transposeNoteBy ks i)
+transposeNoteList : ModifiedKeySignature -> ModifiedKeySignature -> Int -> List AbcNote -> List AbcNote
+transposeNoteList targetks srcks i =
+  List.map (transposeNoteBy targetks srcks i)
 
-transposeChord : KeySignature -> Int -> AbcChord -> AbcChord
-transposeChord ks i c =
-  { c | notes = transposeNoteList ks i c.notes }
+transposeChord : ModifiedKeySignature -> ModifiedKeySignature -> Int -> AbcChord -> AbcChord
+transposeChord targetks srcks i c =
+  { c | notes = transposeNoteList targetks srcks i c.notes }
 
 
 
@@ -198,7 +229,6 @@ flatNoteNumbers =
 pitchFromInt : KeySignature -> Int -> (PitchClass, Accidental)
 pitchFromInt ks i =
   let
-    _ = log "pitchFromInt" i
     dict =
       if (isCOrSharpKey ks) then
         sharpNotedNumbers
@@ -304,8 +334,21 @@ transpositionDistance target src  =
     (tpc, tmacc) = target
     sacc = smacc |> withDefault Natural 
     tacc = tmacc |> withDefault Natural 
+    -- _ = log "transpose source" (spc, sacc)
+    -- _ = log "transpose target" (tpc, tacc)
   in 
-   pitchNumber (tpc, tacc) - pitchNumber (spc, sacc)
+   log "transposition distance" (pitchNumber (tpc, tacc) - pitchNumber (spc, sacc))
+
+{- replace a Key header (if it exists) -}
+replaceKeyHeader : ModifiedKeySignature -> TuneHeaders -> TuneHeaders
+replaceKeyHeader newmks hs =
+  let
+    f h = case h of
+      Key mks -> False
+      _ -> True
+    newhs = List.filter f hs
+  in
+    newhs ++ [Key newmks]
 
 
 
