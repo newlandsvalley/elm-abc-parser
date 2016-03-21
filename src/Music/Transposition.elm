@@ -20,14 +20,14 @@ import Dict exposing (Dict, fromList, get)
 import Maybe exposing (withDefault)
 import Result exposing (Result)
 import Abc.ParseTree exposing (..)
-import Music.Notation exposing (isCOrSharpKey)
+import Music.Notation exposing (isCOrSharpKey, getKeySig)
 
 import Debug exposing (..)
 
 notesInDiatonicScale : Int
 notesInDiatonicScale = 12
 
-{- EXPOSED API -}
+-- Exposed API
 
 {- work out the distance between the keys (target - source) measured in semitones 
    which must be in compatible modes  
@@ -42,38 +42,85 @@ keyDistance target src =
 {- transpose a note from its source key to its target -}
 transposeNote : KeySignature -> KeySignature -> AbcNote -> Result String AbcNote
 transposeNote targetKey srcKey note =
-  if (targetKey.mode /= srcKey.mode) then
-    Err "incompatible modes"
-  else
-    let 
-      srcNum = log "note num" (noteNumber note)
-      dist = log "distance" (transpositionDistance (targetKey.pitchClass, targetKey.accidental) (srcKey.pitchClass, srcKey.accidental))
-      (targetNum, octaveIncrement) = noteIndex srcNum dist
-      (pc, acc) = pitchFromInt targetKey targetNum
-      macc = case acc of
-        Natural -> Nothing
-        x -> Just x
-  in
-    Ok { note | pitchClass = pc, accidental = macc, octave = note.octave + octaveIncrement }
-
-{- inspect the current note index and the amount it is to be incremented by.
-   produce a new note index in the range (0 <= n < notesInDiatonicScale)
-   and associate with this a number (-1,0,1) which indicates an increment to the octave
--}
-noteIndex : Int -> Int -> (Int, Int)
-noteIndex from increment =
   let
-    to = (from + increment)
-  in 
-    if to < 0 then
-      ((notesInDiatonicScale + to), -1)
-    else if (to >= notesInDiatonicScale) then
-      ((to - notesInDiatonicScale), 1)
-    else
-      (to, 0)
+    rdist = keyDistance targetKey srcKey
+  in
+    case rdist of
+      Err e -> Err e
+      Ok d  -> Ok (transposeNoteBy targetKey d note)
+
+{-| transpose a note by the required distance which may be positive or negative -}
+transposeNoteBy : KeySignature -> Int -> AbcNote -> AbcNote
+transposeNoteBy targetKey dist note =
+  let
+    srcNum = noteNumber note
+    (targetNum, octaveIncrement) = noteIndex srcNum dist
+    (pc, acc) = pitchFromInt targetKey targetNum
+    macc = case acc of
+      Natural -> Nothing
+      x -> Just x
+   in 
+    { note | pitchClass = pc, accidental = macc, octave = note.octave + octaveIncrement }
+
+{-| transpose a tune to the target key -}
+transposeTo : ModifiedKeySignature -> AbcTune -> Result String AbcTune
+transposeTo targetmks t =
+  let
+    -- get the key signature if there is one, default to C Major
+    mks = getKeySig t
+           |> withDefault ( {pitchClass = C, accidental = Nothing, mode = Major}, [])
+    -- find the distance between the keys
+    rdistance = keyDistance (fst targetmks) (fst mks)
+  in
+    case rdistance of
+      Err e -> Err e
+      Ok d -> Ok t      
+
+-- Implementation
+transposeTune : ModifiedKeySignature -> Int -> AbcTune -> AbcTune
+transposeTune mks i t =
+  let
+    ks = fst mks
+    (headers, body) = t
+  in
+    (headers, (transposeTuneBody ks i body))
+
+transposeTuneBody : KeySignature -> Int -> TuneBody -> TuneBody
+transposeTuneBody ks i  =
+  List.map (transposeBodyPart ks i)
+
+transposeBodyPart : KeySignature -> Int -> BodyPart -> BodyPart
+transposeBodyPart ks i bp =
+  case bp of
+    Score ms -> Score (transposeMusicList ks i ms)
+    _ -> bp
+
+transposeMusic : KeySignature -> Int -> Music -> Music
+transposeMusic ks i m =
+  case m of
+    Note n -> Note (transposeNoteBy ks i n)
+    BrokenRhythmPair n1 b n2 ->  BrokenRhythmPair (transposeNoteBy ks i n1) b (transposeNoteBy ks i n2)
+    Tuplet ts ns -> Tuplet ts (transposeNoteList ks i ns)
+    GraceNote b m -> GraceNote b (transposeMusic ks i m)
+    Chord c -> Chord (transposeChord ks i c)
+    NoteSequence ms -> NoteSequence  (transposeMusicList ks i ms)
+    -- we won't attempt to transpose chord symbols - just quietly drop them
+    ChordSymbol s -> Ignore   
+    _ -> m
+
+transposeMusicList : KeySignature -> Int -> List Music -> List Music
+transposeMusicList ks i =
+  List.map (transposeMusic ks i)
+
+transposeNoteList : KeySignature -> Int -> List AbcNote -> List AbcNote
+transposeNoteList ks i =
+  List.map (transposeNoteBy ks i)
+
+transposeChord : KeySignature -> Int -> AbcChord -> AbcChord
+transposeChord ks i c =
+  { c | notes = transposeNoteList ks i c.notes }
 
 
-{- IMPLEMENTATION -}
 
 {- create a list of pairs which should match every possible
    note pitch  (pitch class and accidental) with its offset into
@@ -232,6 +279,22 @@ noteNumber n =
             |> withDefault Natural
   in
    pitchNumber (n.pitchClass, acc)
+
+{- inspect the current note index and the amount it is to be incremented by.
+   produce a new note index in the range (0 <= n < notesInDiatonicScale)
+   and associate with this a number (-1,0,1) which indicates an increment to the octave
+-}
+noteIndex : Int -> Int -> (Int, Int)
+noteIndex from increment =
+  let
+    to = (from + increment)
+  in 
+    if to < 0 then
+      ((notesInDiatonicScale + to), -1)
+    else if (to >= notesInDiatonicScale) then
+      ((to - notesInDiatonicScale), 1)
+    else
+      (to, 0)
 
 {- work out the transposition distance (target - source) measured in semitones -} 
 transpositionDistance : (PitchClass, Maybe Accidental) -> (PitchClass, Maybe Accidental) -> Int

@@ -3,7 +3,7 @@ module Abc.Canonical
    , fromResult
    ) where
    
-{-|  Library for converting an ABC Tune parse tree to a canonical ABC string,
+{-|  Module for converting an ABC Tune parse tree to a canonical ABC string,
    
    # Definition
    
@@ -15,8 +15,7 @@ module Abc.Canonical
 import Abc.ParseTree exposing (..)
 import Ratio exposing (Rational, numerator, denominator)
 import Maybe exposing (withDefault)
-import Maybe.Extra exposing (isJust, join)
-import Music.Notation exposing (KeySet, modifiedKeySet, accidentalInKeySet)
+import Music.Notation exposing (KeySet, getKeySet, accidentalInKeySet)
 import String exposing (fromChar, fromList, repeat, trimRight, toLower)
 
 enquote : String -> String
@@ -300,32 +299,7 @@ tuneBody b ks =
   in
     List.foldr f "" b
 
-{- get set of key accidentals from the key (if there is one in the tune) 
 
-   This is used in order to suppress any accidentals in a note as it appears in a score
-   if they are already implied by the key signature
--}
-getKeySet : AbcTune -> KeySet
-getKeySet t =
-  let
-    mksig = getKeySig t
-  in case mksig of
-    Just ksig -> modifiedKeySet ksig
-    Nothing -> []
-
-{- get the key signature (if any) from the tune -}
-getKeySig : AbcTune -> Maybe ModifiedKeySignature
-getKeySig t =
-  let
-    headers = fst t
-    f h = case h of
-      Key mks -> Just mks
-      _ -> Nothing
-    ksigs = List.map f headers
-      |> List.filter isJust
-  in 
-    List.head ksigs
-     |> join
    
   
 -- Exported Functions

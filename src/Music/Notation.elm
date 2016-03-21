@@ -6,6 +6,8 @@ module Music.Notation
   , NoteTime
   , keySet
   , modifiedKeySet
+  , getKeySet
+  , getKeySig
   , scale
   , isCOrSharpKey
   , accidentalImplicitInKey
@@ -25,7 +27,10 @@ module Music.Notation
 
 # Functions
 @docs keySet
-    , scale
+    , modifiedKeySet
+    , getKeySet
+    , getKeySig
+    , scale   
     , isCOrSharpKey
     , accidentalImplicitInKey
     , accidentalInKeySet
@@ -39,10 +44,10 @@ module Music.Notation
 import List.Extra exposing (getAt, splitAt, elemIndex, tails)
 import List exposing (member, isEmpty)
 import Maybe exposing (withDefault, oneOf)
-import Maybe.Extra exposing (join)
+import Maybe.Extra exposing (join, isJust)
 import String exposing (contains, endsWith, fromChar)
 import Dict exposing (Dict, fromList, get)
-import Abc.ParseTree exposing (Mode (..), Accidental (..), KeySignature, ModifiedKeySignature, KeyAccidental, PitchClass (..), AbcNote)
+import Abc.ParseTree exposing (..)
 import Ratio exposing (Rational, over, fromInt, toFloat, add)
 
 {-| a complete pitch class (the white note and the accidental) -}
@@ -82,7 +87,6 @@ keySet ks =
      |> List.filter accidentalKey
 
 {-| return the set of keys (pitch classes with accidental) that comprise a modified key signature -}
--- not finished
 modifiedKeySet : ModifiedKeySignature -> KeySet
 modifiedKeySet ksm =  
   let
@@ -93,6 +97,30 @@ modifiedKeySet ksm =
       ks
     else
       List.foldr modifyKeySet ks mods
+
+{-| get set of key accidentals from the (possibly modified) key (if there is one in the tune) -}
+getKeySet : AbcTune -> KeySet
+getKeySet t =
+  let
+    mksig = getKeySig t
+  in case mksig of
+    Just ksig -> modifiedKeySet ksig
+    Nothing -> []
+
+{-| get the key signature (if any) from the tune -}
+getKeySig : AbcTune -> Maybe ModifiedKeySignature
+getKeySig t =
+  let
+    headers = fst t
+    f h = case h of
+      Key mks -> Just mks
+      _ -> Nothing
+    ksigs = List.map f headers
+      |> List.filter isJust
+  in 
+    List.head ksigs
+     |> join
+
 
 {-| return the set of keys (pitch classes) that comprise a complete 11-note scale -}
 scale : KeySignature -> Scale
@@ -108,7 +136,8 @@ scale ks =
       m ->
         modalScale target ks.mode
 
-{- return True if the key signature is a sharp key or a simple C Major key -}
+
+{-| return True if the key signature is a sharp key or a simple C Major key -}
 isCOrSharpKey : KeySignature -> Bool
 isCOrSharpKey ksig =
   let
@@ -143,30 +172,6 @@ accidentalInKeySet n ks =
     Dict.get (toString n.pitchClass) lookup
       |> join
 
-{- old, very inefficient version.  I'll fix this once elm allows me to use my ADTs in Dicts
-
-accidentalInKeySet'' : AbcNote -> KeySet -> Maybe Accidental
-accidentalInKeySet'' n ks =
-  let
-    sharpTarget = (n.pitchClass, Just Sharp)
-    flatTarget = (n.pitchClass, Just Flat)
-    doubleSharpTarget = (n.pitchClass, Just DoubleSharp)
-    doubleFlatTarget = (n.pitchClass, Just DoubleFlat)
-    naturalTarget = (n.pitchClass, Just Natural)
-  in
-    if List.member sharpTarget ks then
-      Just Sharp
-    else if List.member flatTarget ks then
-      Just Flat
-    else if List.member doubleSharpTarget ks then
-      Just DoubleSharp
-    else if List.member doubleFlatTarget ks then
-      Just DoubleFlat
-    else if List.member naturalTarget ks then
-      Just Natural
-    else
-      Nothing
- -}
 
 {- modify a key set with a new accidental -}
 modifyKeySet : KeyAccidental -> KeySet -> KeySet
