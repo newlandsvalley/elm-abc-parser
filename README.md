@@ -10,7 +10,7 @@ To parse an ABC string you can use:
     abc
      |> parse 
      
-Additional facilities exist in the Music modules to manipulate the parse tree in order (for example) to transpose a tune.
+Additional facilities exist in the [Music](https://github.com/newlandsvalley/elm-abc-parser/tree/master/src/Music) modules to manipulate the [parse tree](https://github.com/newlandsvalley/elm-abc-parser/blob/master/src/Abc/ParseTree.elm) in order (for example) to transpose a tune.
      
 Dependencies
 ------------
