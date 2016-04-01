@@ -2,7 +2,6 @@ module Music.Transposition
   ( 
     keyDistance
   , transposeNote
-  , transposeNoteBy
   , transposeTo
   ) where
 
@@ -22,7 +21,6 @@ Chord symbols will be lost on transposition.
 # Functions
 @docs keyDistance
     , transposeNote
-    , transposeNoteBy
     , transposeTo
 
 WARNING - NOT COMPLETE; NOT FULLY TESTED
@@ -39,9 +37,15 @@ import Maybe exposing (withDefault)
 import Maybe.Extra exposing (isJust)
 import Result exposing (Result)
 import Abc.ParseTree exposing (..)
-import Music.Notation exposing (isCOrSharpKey, getKeySig, accidentalImplicitInKey)
+import Music.Notation exposing (KeySet, isCOrSharpKey, getKeySig, accidentalImplicitInKey)
 
 import Debug exposing (..)
+
+type alias TranspositionState = 
+  { keyDistance : Int                -- semitone distance between keys
+  , srcmks : ModifiedKeySignature    -- source key signature
+  , localAccidentals : KeySet        -- any accidental defined locally to the current bar
+  }
 
 notesInDiatonicScale : Int
 notesInDiatonicScale = 12
@@ -70,28 +74,11 @@ transposeNote targetKey srcKey note =
   in
     case rdist of
       Err e -> Err e
-      Ok d  -> Ok (transposeNoteBy targetKey srcKey d note)
-
-{-| transpose a note by the required distance which may be positive or negative -}
-transposeNoteBy : ModifiedKeySignature -> ModifiedKeySignature -> Int -> AbcNote -> AbcNote
-transposeNoteBy targetKs srcks dist note =
-  let
-    -- make any implicit accidental explicit in the note to be transposed if it's not marked as an accidental
-    inKeyAccidental = accidentalImplicitInKey note srcks
-    explicitNote = 
-      if (isJust note.accidental) then
-        note
-      else 
-        { note | accidental = inKeyAccidental }
-    _ = log "note to transpose" note
-    srcNum = log "src num" (noteNumber explicitNote)
-    (targetNum, octaveIncrement) = log "note index" (noteIndex srcNum dist)
-    (pc, acc) = pitchFromInt (fst targetKs) targetNum
-    macc = case acc of
-      Natural -> Nothing
-      x -> Just x
-   in 
-    { note | pitchClass = pc, accidental = macc, octave = note.octave + octaveIncrement }
+      Ok d  -> 
+        let
+          transpositionState = { keyDistance = d, srcmks = srcKey, localAccidentals = [] }
+        in
+          Ok (transposeNoteBy targetKey transpositionState note)
 
 {-| transpose a tune to the target key -}
 transposeTo : ModifiedKeySignature -> AbcTune -> Result String AbcTune
@@ -105,51 +92,76 @@ transposeTo targetmks t =
   in
     case rdistance of
       Err e -> Err e
-      Ok d -> Ok (transposeTune targetmks mks d t)
+      Ok d -> 
+        let
+          transpositionState = { keyDistance = d, srcmks = mks, localAccidentals = [] }
+        in
+          Ok (transposeTune targetmks transpositionState t)
 
 -- Implementation
-transposeTune : ModifiedKeySignature -> ModifiedKeySignature -> Int -> AbcTune -> AbcTune
-transposeTune targetks srcks i t =
+transposeTune : ModifiedKeySignature -> TranspositionState -> AbcTune -> AbcTune
+transposeTune targetks state t =
   let
     (headers, body) = t
     newHeaders = replaceKeyHeader targetks headers
   in
-    (newHeaders, (transposeTuneBody targetks srcks i body))
+    (newHeaders, (transposeTuneBody targetks state body))
 
-transposeTuneBody : ModifiedKeySignature -> ModifiedKeySignature -> Int -> TuneBody -> TuneBody
-transposeTuneBody targetks srcks i  =
-  List.map (transposeBodyPart targetks srcks i)
+transposeTuneBody : ModifiedKeySignature -> TranspositionState -> TuneBody -> TuneBody
+transposeTuneBody targetks state  =
+  List.map (transposeBodyPart targetks state)
 
-transposeBodyPart : ModifiedKeySignature -> ModifiedKeySignature -> Int -> BodyPart -> BodyPart
-transposeBodyPart targetks srcks i bp =
+transposeBodyPart : ModifiedKeySignature -> TranspositionState -> BodyPart -> BodyPart
+transposeBodyPart targetks state bp =
   case bp of
-    Score ms -> Score (transposeMusicList targetks srcks i ms)
+    Score ms -> Score (transposeMusicList targetks state ms)
     _ -> bp
 
-transposeMusic : ModifiedKeySignature -> ModifiedKeySignature -> Int -> Music -> Music
-transposeMusic targetks srcks i m =
+transposeMusic : ModifiedKeySignature -> TranspositionState -> Music -> Music
+transposeMusic targetks state m =
   case m of
-    Note n -> Note (transposeNoteBy targetks srcks i n)
-    BrokenRhythmPair n1 b n2 ->  BrokenRhythmPair (transposeNoteBy targetks srcks i n1) b (transposeNoteBy targetks srcks i n2)
-    Tuplet ts ns -> Tuplet ts (transposeNoteList targetks srcks i ns)
-    GraceNote b m -> GraceNote b (transposeMusic targetks srcks i m)
-    Chord c -> Chord (transposeChord targetks srcks i c)
-    NoteSequence ms -> NoteSequence  (transposeMusicList targetks srcks i ms)
+    Note n -> Note (transposeNoteBy targetks state n)
+    BrokenRhythmPair n1 b n2 ->  BrokenRhythmPair (transposeNoteBy targetks state n1) b (transposeNoteBy targetks state n2)
+    Tuplet ts ns -> Tuplet ts (transposeNoteList targetks state ns)
+    GraceNote b m -> GraceNote b (transposeMusic targetks state m)
+    Chord c -> Chord (transposeChord targetks state c)
+    NoteSequence ms -> NoteSequence  (transposeMusicList targetks state ms)
     -- we won't attempt to transpose chord symbols - just quietly drop them
-    ChordSymbol s -> Ignore   
+    ChordSymbol s -> Ignore
     _ -> m
 
-transposeMusicList : ModifiedKeySignature -> ModifiedKeySignature -> Int -> List Music -> List Music
-transposeMusicList targetks srcks i =
-  List.map (transposeMusic targetks srcks i)
+transposeMusicList : ModifiedKeySignature -> TranspositionState -> List Music -> List Music
+transposeMusicList targetks state =
+  List.map (transposeMusic targetks state)
 
-transposeNoteList : ModifiedKeySignature -> ModifiedKeySignature -> Int -> List AbcNote -> List AbcNote
-transposeNoteList targetks srcks i =
-  List.map (transposeNoteBy targetks srcks i)
+transposeNoteList : ModifiedKeySignature -> TranspositionState -> List AbcNote -> List AbcNote
+transposeNoteList targetks state =
+  List.map (transposeNoteBy targetks state)
 
-transposeChord : ModifiedKeySignature -> ModifiedKeySignature -> Int -> AbcChord -> AbcChord
-transposeChord targetks srcks i c =
-  { c | notes = transposeNoteList targetks srcks i c.notes }
+transposeChord : ModifiedKeySignature -> TranspositionState -> AbcChord -> AbcChord
+transposeChord targetks state c =
+  { c | notes = transposeNoteList targetks state c.notes }
+
+{-| transpose a note by the required distance which may be positive or negative -}
+transposeNoteBy : ModifiedKeySignature -> TranspositionState -> AbcNote -> AbcNote
+transposeNoteBy targetKs state note =
+  let
+    -- make any implicit accidental explicit in the note to be transposed if it's not marked as an accidental
+    inKeyAccidental = accidentalImplicitInKey note (state.srcmks)
+    explicitNote = 
+      if (isJust note.accidental) then
+        note
+      else 
+        { note | accidental = inKeyAccidental }
+    _ = log "note to transpose" note
+    srcNum = log "src num" (noteNumber explicitNote)
+    (targetNum, octaveIncrement) = log "note index" (noteIndex srcNum (state.keyDistance))
+    (pc, acc) = pitchFromInt (fst targetKs) targetNum
+    macc = case acc of
+      Natural -> Nothing
+      x -> Just x
+   in 
+    { note | pitchClass = pc, accidental = macc, octave = note.octave + octaveIncrement }
 
 
 
