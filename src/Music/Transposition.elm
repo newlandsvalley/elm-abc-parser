@@ -40,7 +40,7 @@ import Maybe exposing (withDefault, oneOf)
 import Maybe.Extra exposing (isJust)
 import Result exposing (Result)
 import Abc.ParseTree exposing (..)
-import Music.Notation exposing (KeyClass, KeySet, isCOrSharpKey, getKeySig, accidentalImplicitInKey, accidentalInKeySet)
+import Music.Notation exposing (KeyClass, KeySet, notesInChromaticScale, isCOrSharpKey, getKeySig, accidentalImplicitInKey, accidentalInKeySet, transposeKeySignatureBy)
 
 import Debug exposing (..)
 
@@ -50,8 +50,7 @@ type alias TranspositionState =
   , localAccidentals : KeySet        -- any accidental defined locally to the current bar
   }
 
-notesInDiatonicScale : Int
-notesInDiatonicScale = 12
+
 
 -- Exposed API
 
@@ -111,19 +110,42 @@ transposeTune targetks state t =
   in
     (newHeaders, (transposeTuneBody targetks state body))
 
+{- transpose the tune body.  We need to thread state through the tune in case there's an inline
+   information header which changes key part way through the tune
+-}
 transposeTuneBody : ModifiedKeySignature -> TranspositionState -> TuneBody -> TuneBody
-transposeTuneBody targetks state  =
-  List.map (transposeBodyPart targetks state)
+transposeTuneBody targetks state body =
+  let     
+    f n acc = 
+      let 
+        (bs, s0) = acc
+        (b1, s1) = transposeBodyPart targetks s0 n
+      in
+       ( b1 :: bs, s1)
+  in
+    let
+      (tb, news) = List.foldl f ([], state) body
+    in
+      List.reverse tb
 
-transposeBodyPart : ModifiedKeySignature -> TranspositionState -> BodyPart -> BodyPart
+transposeBodyPart : ModifiedKeySignature -> TranspositionState -> BodyPart -> (BodyPart, TranspositionState)
 transposeBodyPart targetks state bp =
   case bp of
+    -- just transpose the score
     Score ms -> 
       let 
         (ms1, s1) = transposeMusicList targetks state ms
       in
-        Score ms1
-    _ -> bp
+        (Score ms1, s1)
+    -- transpose any Key header found inline
+    BodyInfo h ->     
+      case h of       
+        Key mks -> 
+          let
+            newmks = transposeKeySignatureBy state.keyDistance mks
+          in
+           (BodyInfo (Key newmks), {state | srcmks = mks })
+        _ -> (bp, state)
 
 transposeMusic : ModifiedKeySignature -> TranspositionState -> Music -> (Music, TranspositionState)
 transposeMusic targetks state m =
@@ -211,7 +233,9 @@ transposeChord targetks state c =
   in
     ( { c | notes = ns}, newstate)
 
-{-| transpose a note by the required distance which may be positive or negative -}
+{-| transpose a note by the required distance which may be positive or negative 
+    transposition distance is taken from the state
+-}
 transposeNoteBy : ModifiedKeySignature -> TranspositionState -> AbcNote -> (AbcNote, TranspositionState)
 transposeNoteBy targetKs state note =
   let
@@ -332,7 +356,7 @@ flatNoteNumbers =
   in
     List.filter f noteNumbers
 
-{- given a key signature and an integer (0 <= n < notesInDiatonicScale)
+{- given a key signature and an integer (0 <= n < notesInChromaticScale)
    return the pitch of the note within that signature
 -}
 pitchFromInt : KeySignature -> Int -> (PitchClass, Accidental)
@@ -348,7 +372,7 @@ pitchFromInt ks i =
       |> withDefault (C, Natural)
 
 {- the inverted lookup for sharp chromatic scales.  This dictionaary
-   allows you to enter a number (0 <= n < notesInDiatonicScale) and return
+   allows you to enter a number (0 <= n < notesInChromaticScale) and return
    a (pitchClass, Accidental) pair which is the note's pitch
 -}
 sharpNotedNumbers : Dict Int (PitchClass, Accidental)
@@ -360,7 +384,7 @@ sharpNotedNumbers =
       |> Dict.fromList 
 
 {- the inverted lookup for flat chromatic scales.  This dictionaary
-   allows you to enter a number (0 <= n < notesInDiatonicScale) and return 
+   allows you to enter a number (0 <= n < notesInChromaticScale) and return 
    a (pitchClass, Accidental) pair which is the note's pitch
 -}
 flatNotedNumbers : Dict Int (PitchClass, Accidental)
@@ -407,12 +431,12 @@ lookupChromatic dict target =
     Dict.get target dict
       |> withDefault 0
 
-{- look up the pitch and return a number in the range 0 <= n < notesInDiatonicScale  (0 is C Natural) -}
+{- look up the pitch and return a number in the range 0 <= n < notesInChromaticScale  (0 is C Natural) -}
 pitchNumber : (PitchClass, Accidental) -> Int
 pitchNumber pa =
   lookupChromatic chromaticScaleDict (comparableNote pa) 
 
-{- look up the note and return the number of its pitch in the range 0 <= n < notesInDiatonicScale (0 is C Natural) -}
+{- look up the note and return the number of its pitch in the range 0 <= n < notesInChromaticScale (0 is C Natural) -}
 noteNumber : AbcNote -> Int
 noteNumber n =
   let
@@ -422,7 +446,7 @@ noteNumber n =
    pitchNumber (n.pitchClass, acc)
 
 {- inspect the current note index and the amount it is to be incremented by.
-   produce a new note index in the range (0 <= n < notesInDiatonicScale)
+   produce a new note index in the range (0 <= n < notesInChromaticScale)
    and associate with this a number (-1,0,1) which indicates an increment to the octave
 -}
 noteIndex : Int -> Int -> (Int, Int)
@@ -431,9 +455,9 @@ noteIndex from increment =
     to = (from + increment)
   in 
     if to < 0 then
-      ((notesInDiatonicScale + to), -1)
-    else if (to >= notesInDiatonicScale) then
-      ((to - notesInDiatonicScale), 1)
+      ((notesInChromaticScale + to), -1)
+    else if (to >= notesInChromaticScale) then
+      ((to - notesInChromaticScale), 1)
     else
       (to, 0)
 

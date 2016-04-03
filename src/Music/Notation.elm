@@ -4,6 +4,7 @@ module Music.Notation
   , MidiPitch
   , AbcTempo
   , NoteTime
+  , notesInChromaticScale
   , keySet
   , modifiedKeySet
   , getKeySet
@@ -18,6 +19,7 @@ module Music.Notation
   , toMidiPitch
   , noteDuration
   , chordalNoteDuration
+  , transposeKeySignatureBy
   ) where
 
 {-|  Helper functions for making more musical sense of the parse tree
@@ -28,7 +30,8 @@ module Music.Notation
 @docs KeySet, KeyClass, MidiPitch, AbcTempo, NoteTime
 
 # Functions
-@docs keySet
+@docs notesInChromaticScale
+    , keySet
     , modifiedKeySet
     , getKeySet
     , getKeySig
@@ -42,6 +45,7 @@ module Music.Notation
     , toMidiPitch
     , noteDuration  
     , chordalNoteDuration
+    , transposeKeySignatureBy
 
 -}
 
@@ -86,6 +90,8 @@ type alias AbcTempo =
 
 
 -- EXPORTED FUNCTIONS
+notesInChromaticScale : Int
+notesInChromaticScale = 12
     
 {-| return the set of keys (pitch classes with accidental) that comprise the key signature -}
 keySet : KeySignature -> KeySet
@@ -248,7 +254,7 @@ dotFactor i =
 -}
 toMidiPitch : AbcNote -> ModifiedKeySignature -> KeySet -> MidiPitch
 toMidiPitch n mks barAccidentals =
-  (n.octave * 12) + midiPitchOffset n mks barAccidentals
+  (n.octave * notesInChromaticScale) + midiPitchOffset n mks barAccidentals
 
 {-| find a real world note duration by translating an ABC note duration using a tempo and unit note length  -}
 noteDuration : AbcTempo -> Rational -> NoteTime
@@ -396,11 +402,22 @@ partialSum l =
     |> List.reverse
     |> List.take (List.length l)  
 
--- find the pitch class at a given position in the scale   
+{- find the pitch class at a given position in the scale   
+   modulate the index to be in the range 0 <= index < notesInChromaticScale
+   where a negative value rotates left from the maximum value in the scale 
+-}
 lookUp : ChromaticScale -> Int -> KeyClass
 lookUp s i =
-  getAt s i
-    |> withDefault (C, Nothing)
+  let
+    modi = i % notesInChromaticScale
+    index =
+      if (modi < 0) then
+        notesInChromaticScale - modi
+      else
+        modi
+  in
+    getAt s index
+      |> withDefault (C, Nothing)
     
 -- provide the Major scale for the pitch class  
 majorScale : KeyClass -> Scale
@@ -434,7 +451,7 @@ modalScale target mode =
       _ -> 0  
     index = elemIndex target sharpScale
              |> withDefault 0
-    majorKeyIndex = (index + distance) % 12
+    majorKeyIndex = (index + distance) % notesInChromaticScale
     majorKey = lookUp sharpScale majorKeyIndex
   in 
     majorScale (equivalentEnharmonic majorKey)  
@@ -468,15 +485,66 @@ midiPitchOffset n mks barAccidentals =
     -- look first for an explicit note accidental, then for an explicit for the same note that occurred earlier in the bar and 
     -- finally look for an implicit accidental attached to this key signature
     maybeAccidental = oneOf [n.accidental, inBarAccidental, inKeyAccidental]
-    f a = case a of
-      Sharp -> "#"
-      Flat -> "b"
-      _ -> ""
-    accidental = withDefault "" (Maybe.map f maybeAccidental)
+    accidental = accidentalPattern maybeAccidental
     pattern = (toString n.pitchClass) ++ accidental
   in
     withDefault 0 (Dict.get pattern chromaticScaleDict)
 
+{- turn an optional accidental into a string pattern for use in lookups -}
+accidentalPattern : Maybe Accidental -> String
+accidentalPattern ma = 
+  let
+    f a = case a of
+      Sharp -> "#"
+      Flat -> "b"
+      _ -> ""
+  in
+    withDefault "" (Maybe.map f ma)
+
+transposeKeySignatureBy : Int -> ModifiedKeySignature -> ModifiedKeySignature
+transposeKeySignatureBy i mks =
+  let
+    (ks, keyaccs) = mks
+    -- turn the key sig to a string pattern and look up its index
+    pattern = (toString ks.pitchClass) ++ (accidentalPattern ks.accidental)
+    index =  withDefault 0 (Dict.get pattern chromaticScaleDict)
+    -- keep hold of the sharp / flat nature of the original scale
+    scale =
+      if (isCOrSharpKey ks) then
+        sharpScale
+      else
+        flatScale
+    -- now look up the transposed key at the new index
+    (pc, ma) = 
+      getAt scale (index + i)
+        |> withDefault (C, Nothing)
+    -- modify the key accidentals likewise
+    accs = List.map (transposeKeyAccidentalBy i) keyaccs
+  in
+    ( { pitchClass = pc, accidental = ma, mode = ks.mode }, accs )
+
+{- transpose a key accidental  (a key signature modifier)
+   not finished
+-}
+transposeKeyAccidentalBy : Int -> KeyAccidental -> KeyAccidental
+transposeKeyAccidentalBy i ka =
+  let
+    pattern = (toString ka.pitchClass) 
+    index = withDefault 0 (Dict.get pattern chromaticScaleDict)
+    (modifier, scale) = 
+      case ka.accidental of
+       Sharp -> (1, sharpScale)
+       Flat  -> (-1, flatScale)
+       DoubleSharp -> (2, sharpScale)
+       DoubleFlat -> (-2, flatScale)
+       Natural -> (0, sharpScale)
+    (pc, ma) = 
+      getAt scale (index + modifier + i)
+        |> withDefault (C, Nothing)
+  in
+    case ma of
+      Nothing -> { pitchClass = pc, accidental = Natural }
+      Just a -> { pitchClass = pc, accidental = a }
 
 
 

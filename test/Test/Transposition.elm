@@ -9,18 +9,23 @@ import Maybe exposing (Maybe)
 import Result exposing (..)
 import Ratio exposing (Rational, over, fromInt)
 
+import Debug exposing (..)
+
 {- assert the transposed parsed input equals the target -}
 assertTranspositionMatches : String -> ModifiedKeySignature -> String -> Assertion
 assertTranspositionMatches s targetks target = 
   let 
-    transposedResult = formatError (\_ -> "parse error") (parse s)
+    transposedResult = formatError (\x -> "parse error: " ++ toString x) (parse s)
         `andThen` (\tune -> transposeTo targetks tune)
   in
     case transposedResult  of
       Ok res -> 
         assertEqual target (fromTune res)
       Err errs -> 
-        assert False
+        let 
+           _ = log "unexpected error" errs
+        in
+          assert False
 
 
 tests : Test
@@ -100,6 +105,15 @@ tests =
                dmPhrase
                gMinor
                gmPhrase
+               )  
+        ]
+    keyChanges =  
+      suite "inline key changes"
+        [
+         test "key change Bm to Am" (assertTranspositionMatches 
+               keyChangeBm 
+               aMinor
+               keyChangeAm
                ) 
         ]
 {-
@@ -121,6 +135,7 @@ tests =
           keys
         , notes
         , phrases
+        , keyChanges
         {- -}
         -- single
         ]
@@ -159,6 +174,9 @@ gMajor = ({ pitchClass = G, accidental = Nothing, mode = Major }, [])
 gMinor : ModifiedKeySignature
 gMinor = ({ pitchClass = G, accidental = Nothing, mode = Minor }, [])
 
+aMinor : ModifiedKeySignature
+aMinor = ({ pitchClass = A, accidental = Nothing, mode = Minor }, [])
+
 aMajor : ModifiedKeySignature
 aMajor = ({ pitchClass = A, accidental = Nothing, mode = Major }, [])
 
@@ -187,6 +205,9 @@ fPhrase = "K: FMajor\r\n| de (3fga [bc'] |\r\n"
 gmPhrase = "K: GMinor\r\n| G3A B6 Ac |\r\n B2AG ^FGA^F D4\r\n"
 gmPhraseLocal = "K: GMinor\r\n| G3A B6 Ac |\r\n B2AG ^FGAF D4\r\n"  -- second F implicitly sharpened
 dmPhrase = "K: DMinor\r\n| D3E F6 EG |\r\n F2ED ^CDE^C A,4\r\n"
+
+keyChangeBm = "K: BMinor\r\n| B4 A4 B4 | d2f2 e2dc c2d2 |\r\nK: F#Minor\r\n| f4 e4 f4 | g2a2 b2ag g2a2 |\r\n"
+keyChangeAm = "K: AMinor\r\n| A4 G4 A4 | c2e2 d2cB B2c2 |\r\nK: EMinor\r\n| e4 d4 e4 | f2g2 a2gf f2g2 |\r\n"
 
 
 

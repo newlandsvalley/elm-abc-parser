@@ -279,6 +279,7 @@ tuneHeaders  hs =
   in
     List.foldr f "" hs
     
+{- need to return a KeySet along with the string to cover cases where an inline header changes key -}
 bodyPart : BodyPart -> KeySet -> String
 bodyPart bp ks = case bp of
   Score ml -> musics ml ks
@@ -290,15 +291,21 @@ continuation c =
     "\\"
   else 
     ""
-  
+{- need to thread state through this tp account for key changes -}
+tuneBody : TuneBody -> KeySet -> String
+tuneBody b ks = 
+  let 
+    f bp acc = acc ++ (bodyPart bp ks) ++ "\r\n" 
+  in
+    List.foldl f "" b
+{-
 tuneBody : TuneBody -> KeySet -> String
 tuneBody b ks = 
   let 
     f bp acc = (bodyPart bp ks) ++ "\r\n" ++ acc
   in
     List.foldr f "" b
-
-
+-}
    
   
 -- Exported Functions
