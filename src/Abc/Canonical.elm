@@ -15,7 +15,7 @@ module Abc.Canonical
 import Abc.ParseTree exposing (..)
 import Ratio exposing (Rational, numerator, denominator)
 import Maybe exposing (withDefault)
-import Music.Notation exposing (KeySet, getKeySet, naturaliseIfInKeySet)
+import Music.Notation exposing (KeySet, getKeySet, naturaliseIfInKeySet, sharpenFlatEnharmonic)
 import String exposing (fromChar, fromList, repeat, trimRight, toLower)
 
 
@@ -168,8 +168,8 @@ pitch octave p =
 abcNote : AbcNote -> KeySet -> String
 abcNote originala ks =
   let
-     -- forget about the accidental if it's implied by the key signature
-     a = naturaliseIfInKeySet originala ks
+     -- forget about the accidental if it's implied by the key signature and otherwise sharoen flat accidentals
+     a = sharpenFlatEnharmonic (naturaliseIfInKeySet originala ks)
      acc  = Maybe.map accidental a.accidental
                     |> withDefault ""
      tie = case a.tied of

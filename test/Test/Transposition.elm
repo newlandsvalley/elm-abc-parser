@@ -85,6 +85,21 @@ tests =
                cPhrase
                fMajor
                fPhrase
+               )
+        , test "Gm phrase to Dm phrase" (assertTranspositionMatches 
+               gmPhrase
+               dMinor
+               dmPhrase
+               ) 
+        , test "Gm phrase with in-bar accidental" (assertTranspositionMatches 
+               gmPhraseLocal
+               dMinor
+               dmPhrase
+               ) 
+        , test "Dm phrase to Gm phrase" (assertTranspositionMatches 
+               dmPhrase
+               gMinor
+               gmPhrase
                ) 
         ]
 {-
@@ -92,10 +107,10 @@ tests =
       suite "single test"
         [ 
 
-         test "F phrase to C phrase" (assertTranspositionMatches 
-               fPhrase
-               cMajor
-               cPhrase
+          test "Gm phrase with in-bar accidental" (assertTranspositionMatches 
+               gmPhraseLocal
+               dMinor
+               dmPhrase
                ) 
         ]
 -}
@@ -110,7 +125,7 @@ tests =
         -- single
         ]
 
--- note C Sharp and D Sharp are in octave 5 al the other notes are in octave 4 
+-- note C Sharp and D Sharp are in octave 5 all the other notes are in octave 4 
 cs : AbcNote
 cs = { pitchClass = C,  accidental = Just Sharp, octave = 5, duration = fromInt 1, tied = False }
 
@@ -141,6 +156,9 @@ fMajor = ({ pitchClass = F, accidental = Nothing, mode = Major }, [])
 gMajor : ModifiedKeySignature
 gMajor = ({ pitchClass = G, accidental = Nothing, mode = Major }, [])
 
+gMinor : ModifiedKeySignature
+gMinor = ({ pitchClass = G, accidental = Nothing, mode = Minor }, [])
+
 aMajor : ModifiedKeySignature
 aMajor = ({ pitchClass = A, accidental = Nothing, mode = Major }, [])
 
@@ -153,6 +171,9 @@ cMajor = ({ pitchClass = C, accidental = Nothing, mode = Major },[])
 dMajor : ModifiedKeySignature
 dMajor = ({ pitchClass = D, accidental = Nothing, mode = Major },[])
 
+dMinor : ModifiedKeySignature
+dMinor = ({ pitchClass = D, accidental = Nothing, mode = Minor },[])
+
 bFlatDorian : ModifiedKeySignature
 bFlatDorian = ({ pitchClass = B, accidental = Just Flat, mode = Dorian },[])
 
@@ -163,6 +184,9 @@ bFlat = ({ pitchClass = B, accidental = Just Flat, mode = Major },[])
 cPhrase = "K: CMajor\r\n| AB (3cde [fg] |\r\n"
 dPhrase = "K: DMajor\r\n| Bc (3def [ga] |\r\n"
 fPhrase = "K: FMajor\r\n| de (3fga [bc'] |\r\n"
+gmPhrase = "K: GMinor\r\n| G3A B6 Ac |\r\n B2AG ^FGA^F D4\r\n"
+gmPhraseLocal = "K: GMinor\r\n| G3A B6 Ac |\r\n B2AG ^FGAF D4\r\n"  -- second F implicitly sharpened
+dmPhrase = "K: DMinor\r\n| D3E F6 EG |\r\n F2ED ^CDE^C A,4\r\n"
 
 
 

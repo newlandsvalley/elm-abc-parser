@@ -28,16 +28,19 @@ WARNING - NOT COMPLETE; NOT FULLY TESTED
 -}
 
 {- A parse tree score contains implicit accidentals.  Very often, the source text will not mark them but assume that they
-   are implicit in the key signature.  In order for the transposition process to work, all accidentals must be made
-   explicit during transposition and then (perhaps) made implicit when wtitten out to text
+   are implicit in the key signature.  They also may appear 'locally' - i.e. earlier in the bar and thus inherited.
+   In order for the transposition process to work, all accidentals must be made explicit during transposition and then 
+   (perhaps) made implicit when written out to text.
+
+   This means we have to thread state through the transposition and hence use folds rather than maps
 -}
 
 import Dict exposing (Dict, fromList, get)
-import Maybe exposing (withDefault)
+import Maybe exposing (withDefault, oneOf)
 import Maybe.Extra exposing (isJust)
 import Result exposing (Result)
 import Abc.ParseTree exposing (..)
-import Music.Notation exposing (KeySet, isCOrSharpKey, getKeySig, accidentalImplicitInKey)
+import Music.Notation exposing (KeyClass, KeySet, isCOrSharpKey, getKeySig, accidentalImplicitInKey, accidentalInKeySet)
 
 import Debug exposing (..)
 
@@ -77,16 +80,17 @@ transposeNote targetKey srcKey note =
       Ok d  -> 
         let
           transpositionState = { keyDistance = d, srcmks = srcKey, localAccidentals = [] }
+          (transposedNote, _) = (transposeNoteBy targetKey transpositionState note)
         in
-          Ok (transposeNoteBy targetKey transpositionState note)
+          Ok transposedNote
 
 {-| transpose a tune to the target key -}
 transposeTo : ModifiedKeySignature -> AbcTune -> Result String AbcTune
 transposeTo targetmks t =
   let
     -- get the key signature if there is one, default to C Major
-    mks = log "transpose from key" (getKeySig t
-           |> withDefault ( {pitchClass = C, accidental = Nothing, mode = Major}, []))
+    mks = getKeySig t
+           |> withDefault ( {pitchClass = C, accidental = Nothing, mode = Major}, [])
     -- find the distance between the keys
     rdistance = keyDistance targetmks mks
   in
@@ -114,55 +118,148 @@ transposeTuneBody targetks state  =
 transposeBodyPart : ModifiedKeySignature -> TranspositionState -> BodyPart -> BodyPart
 transposeBodyPart targetks state bp =
   case bp of
-    Score ms -> Score (transposeMusicList targetks state ms)
+    Score ms -> 
+      let 
+        (ms1, s1) = transposeMusicList targetks state ms
+      in
+        Score ms1
     _ -> bp
 
-transposeMusic : ModifiedKeySignature -> TranspositionState -> Music -> Music
+transposeMusic : ModifiedKeySignature -> TranspositionState -> Music -> (Music, TranspositionState)
 transposeMusic targetks state m =
   case m of
-    Note n -> Note (transposeNoteBy targetks state n)
-    BrokenRhythmPair n1 b n2 ->  BrokenRhythmPair (transposeNoteBy targetks state n1) b (transposeNoteBy targetks state n2)
-    Tuplet ts ns -> Tuplet ts (transposeNoteList targetks state ns)
-    GraceNote b m -> GraceNote b (transposeMusic targetks state m)
-    Chord c -> Chord (transposeChord targetks state c)
-    NoteSequence ms -> NoteSequence  (transposeMusicList targetks state ms)
+    Note n -> 
+      let 
+        (tn1, s1) = transposeNoteBy targetks state n
+      in
+        (Note tn1, s1)
+
+    BrokenRhythmPair n1 b n2 ->  
+      let
+        (tn1, s1) = transposeNoteBy targetks state n1
+        (tn2, s2) = transposeNoteBy targetks s1 n2
+      in
+        (BrokenRhythmPair tn1 b tn2, s2)
+
+    Tuplet ts ns -> 
+      let 
+        (ns1, s1) = transposeNoteList targetks state ns
+      in 
+        (Tuplet ts ns1, s1)
+ 
+    GraceNote b m -> 
+      let 
+        (m1, s1) = transposeMusic targetks state m
+      in 
+        (GraceNote b m1, s1)
+
+    Chord c -> 
+      let 
+        (tc, s1) = transposeChord targetks state c
+      in
+        (Chord tc, s1)
+
+    NoteSequence ms -> 
+      let 
+        (ms1, s1) = transposeMusicList targetks state ms
+      in 
+        (NoteSequence ms1, s1)
+
     -- we won't attempt to transpose chord symbols - just quietly drop them
-    ChordSymbol s -> Ignore
-    _ -> m
+    ChordSymbol s -> (Ignore, state)
 
-transposeMusicList : ModifiedKeySignature -> TranspositionState -> List Music -> List Music
-transposeMusicList targetks state =
-  List.map (transposeMusic targetks state)
+    -- new bar, initialise accidentals list
+    Barline b -> (Barline b, { state | localAccidentals = [] })
 
-transposeNoteList : ModifiedKeySignature -> TranspositionState -> List AbcNote -> List AbcNote
-transposeNoteList targetks state =
-  List.map (transposeNoteBy targetks state)
+    _ -> (m, state)
 
-transposeChord : ModifiedKeySignature -> TranspositionState -> AbcChord -> AbcChord
+transposeMusicList : ModifiedKeySignature -> TranspositionState -> List Music -> (List Music, TranspositionState)
+transposeMusicList targetks state ms =
+  let
+     f n acc = 
+       let 
+         (ns, s0) = acc
+         (n1, s1) = transposeMusic targetks s0 n
+       in
+        ( n1 :: ns, s1)
+  in
+    let
+      (tns, news) = List.foldl f ([], state) ms
+    in
+      (List.reverse tns, news)
+
+transposeNoteList : ModifiedKeySignature -> TranspositionState -> List AbcNote -> (List AbcNote, TranspositionState)
+transposeNoteList targetks state ns =
+  let
+     f n acc = 
+       let 
+         (ns, s0) = acc
+         (n1, s1) = transposeNoteBy targetks s0 n
+       in
+        ( n1 :: ns, s1)
+  in
+    let
+      (tns, news) = List.foldl f ([], state) ns
+    in
+      (List.reverse tns, news)
+  
+
+transposeChord : ModifiedKeySignature -> TranspositionState -> AbcChord -> (AbcChord, TranspositionState)
 transposeChord targetks state c =
-  { c | notes = transposeNoteList targetks state c.notes }
+  let 
+    (ns, newstate) = transposeNoteList targetks state c.notes
+  in
+    ( { c | notes = ns}, newstate)
 
 {-| transpose a note by the required distance which may be positive or negative -}
-transposeNoteBy : ModifiedKeySignature -> TranspositionState -> AbcNote -> AbcNote
+transposeNoteBy : ModifiedKeySignature -> TranspositionState -> AbcNote -> (AbcNote, TranspositionState)
 transposeNoteBy targetKs state note =
   let
     -- make any implicit accidental explicit in the note to be transposed if it's not marked as an accidental
     inKeyAccidental = accidentalImplicitInKey note (state.srcmks)
+    inBarAccidental = localAccidental note state
+    implicitAccidental = oneOf [inKeyAccidental, inBarAccidental]
     explicitNote = 
       if (isJust note.accidental) then
         note
       else 
-        { note | accidental = inKeyAccidental }
-    _ = log "note to transpose" note
-    srcNum = log "src num" (noteNumber explicitNote)
-    (targetNum, octaveIncrement) = log "note index" (noteIndex srcNum (state.keyDistance))
+        { note | accidental = implicitAccidental }
+    -- _ = log "note to transpose" note
+    -- _ = log "local accidentals" state.localAccidentals
+    srcNum = noteNumber explicitNote
+    (targetNum, octaveIncrement) = noteIndex srcNum (state.keyDistance)
     (pc, acc) = pitchFromInt (fst targetKs) targetNum
     macc = case acc of
       Natural -> Nothing
       x -> Just x
-   in 
-    { note | pitchClass = pc, accidental = macc, octave = note.octave + octaveIncrement }
+    -- save the key class of the original untransposed note
+    newState = addLocalAccidental note state
+  in
+    ( { note | pitchClass = pc, accidental = macc, octave = note.octave + octaveIncrement }, newState)
 
+{- we need to take note of any accidentals so far in the bar because these may influence
+   later notes in that bar.  If the key class defines an accidental, add it to the key set if it's new.
+-}
+addLocalAccidental : AbcNote -> TranspositionState -> TranspositionState
+addLocalAccidental n state =
+  case n.accidental of
+    Just acc ->
+      let
+        keyClass = (n.pitchClass, n.accidental)
+        ks = state.localAccidentals 
+      in
+        if not (List.member keyClass ks) then
+          { state | localAccidentals = keyClass :: ks }
+        else
+          state
+    _ -> state
+
+{-| return an accidental if it has been set locally (i.e. earlier in the bar)
+    and thus is inherited
+-}
+localAccidental : AbcNote -> TranspositionState -> Maybe Accidental
+localAccidental n state  =
+  accidentalInKeySet n (state.localAccidentals)
 
 
 {- create a list of pairs which should match every possible
@@ -274,6 +371,8 @@ flatNotedNumbers =
     List.map invert flatNoteNumbers
       |> Dict.fromList 
 
+
+
 {- make a note's pitch comparable by translating to a string
    so it can be used in dictionaries
 -}
@@ -338,7 +437,7 @@ noteIndex from increment =
     else
       (to, 0)
 
-{- work out the transposition distance (target - source) measured in semitones -} 
+{- work out the minimum transposition distance (target - source) or (source - target) measured in semitones -} 
 transpositionDistance : (PitchClass, Maybe Accidental) -> (PitchClass, Maybe Accidental) -> Int
 transpositionDistance target src  =
   let
@@ -346,10 +445,8 @@ transpositionDistance target src  =
     (tpc, tmacc) = target
     sacc = smacc |> withDefault Natural 
     tacc = tmacc |> withDefault Natural 
-    -- _ = log "transpose source" (spc, sacc)
-    -- _ = log "transpose target" (tpc, tacc)
   in 
-   log "transposition distance" (pitchNumber (tpc, tacc) - pitchNumber (spc, sacc))
+    pitchNumber (tpc, tacc) - pitchNumber (spc, sacc)
 
 {- replace a Key header (if it exists) -}
 replaceKeyHeader : ModifiedKeySignature -> TuneHeaders -> TuneHeaders

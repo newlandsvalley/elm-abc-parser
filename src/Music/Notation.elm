@@ -13,6 +13,7 @@ module Music.Notation
   , accidentalImplicitInKey
   , accidentalInKeySet
   , naturaliseIfInKeySet
+  , sharpenFlatEnharmonic
   , dotFactor
   , toMidiPitch
   , noteDuration
@@ -36,6 +37,7 @@ module Music.Notation
     , accidentalImplicitInKey
     , accidentalInKeySet
     , naturaliseIfInKeySet
+    , sharpenFlatEnharmonic
     , dotFactor
     , toMidiPitch
     , noteDuration  
@@ -194,6 +196,20 @@ naturaliseIfInKeySet n ks =
     else
       n
 
+{- enharmonic equivalence for flattened notes
+   We'll (for the moment) use the convention that most flat accidentals
+   are presented in sharpened form
+ -}
+sharpenFlatEnharmonic : AbcNote -> AbcNote
+sharpenFlatEnharmonic n = 
+  let 
+    target = (n.pitchClass, n.accidental)
+  in
+    case target of 
+      (G, Just Flat) -> { n | pitchClass = F, accidental = Just Sharp }
+      (D, Just Flat) -> { n | pitchClass = C, accidental = Just Sharp } 
+      _ -> n
+
 {- modify a key set with a new accidental -}
 modifyKeySet : KeyAccidental -> KeySet -> KeySet
 modifyKeySet target ks =
@@ -321,6 +337,7 @@ equivalentEnharmonic k =
    (D, Just Sharp) -> (E, Just Flat)
    (G, Just Sharp) -> (A, Just Flat)
    _ -> k
+
 
 majorIntervals : Intervals
 majorIntervals = [2,2,1,2,2,2,1]
