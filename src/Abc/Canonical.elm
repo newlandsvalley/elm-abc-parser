@@ -15,10 +15,8 @@ module Abc.Canonical
 import Abc.ParseTree exposing (..)
 import Ratio exposing (Rational, numerator, denominator)
 import Maybe exposing (withDefault)
-import Music.Notation exposing (KeySet, getKeySet, naturaliseIfInKeySet, sharpenFlatEnharmonic)
+import Music.Notation exposing (KeySet, getKeySet, modifiedKeySet, naturaliseIfInKeySet, sharpenFlatEnharmonic)
 import String exposing (fromChar, fromList, repeat, trimRight, toLower)
-
-
 
 enquote : String -> String
 enquote s = "\"" ++ s ++ "\""
@@ -280,10 +278,19 @@ tuneHeaders  hs =
     List.foldr f "" hs
     
 {- need to return a KeySet along with the string to cover cases where an inline header changes key -}
-bodyPart : BodyPart -> KeySet -> String
+bodyPart : BodyPart -> KeySet -> (String, KeySet)
 bodyPart bp ks = case bp of
-  Score ml -> musics ml ks
-  BodyInfo h ->  header h
+  Score ml -> (musics ml ks, ks)
+  BodyInfo h ->  
+    case h of
+      -- an inline Key header indicating a key change so we must modify state
+      Key mksig ->
+        let
+          ks1 = modifiedKeySet mksig
+        in
+          (header h, ks1)
+      -- any other header has no effect on state
+      _ -> (header h, ks)
 
 continuation : Bool -> String
 continuation c = 
@@ -291,22 +298,20 @@ continuation c =
     "\\"
   else 
     ""
-{- need to thread state through this tp account for key changes -}
+{- Thread the KeySet state through each body part in order to cater for key changes introduced by inline Key headers -}
 tuneBody : TuneBody -> KeySet -> String
 tuneBody b ks = 
-  let 
-    f bp acc = acc ++ (bodyPart bp ks) ++ "\r\n" 
+  let  
+    f bp acc = 
+      let
+        (text0, ks0) = acc
+        (text1, ks1) = (bodyPart bp ks0)
+      in
+        (text0 ++ text1 ++ "\r\n", ks1)
   in
-    List.foldl f "" b
-{-
-tuneBody : TuneBody -> KeySet -> String
-tuneBody b ks = 
-  let 
-    f bp acc = (bodyPart bp ks) ++ "\r\n" ++ acc
-  in
-    List.foldr f "" b
--}
-   
+    List.foldl f ("", ks) b
+      |> fst
+
   
 -- Exported Functions
 

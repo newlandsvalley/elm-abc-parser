@@ -23,7 +23,6 @@ Chord symbols will be lost on transposition.
     , transposeNote
     , transposeTo
 
-WARNING - NOT COMPLETE; NOT FULLY TESTED
 
 -}
 
@@ -95,11 +94,15 @@ transposeTo targetmks t =
   in
     case rdistance of
       Err e -> Err e
-      Ok d -> 
-        let
-          transpositionState = { keyDistance = d, srcmks = mks, localAccidentals = [] }
-        in
-          Ok (transposeTune targetmks transpositionState t)
+      Ok d ->
+        -- don't bother transposing if there's no distance between the keys 
+        if (d == 0) then
+          Ok t
+        else
+          let
+            transpositionState = { keyDistance = d, srcmks = mks, localAccidentals = [] }
+          in
+            Ok (transposeTune targetmks transpositionState t)
 
 -- Implementation
 transposeTune : ModifiedKeySignature -> TranspositionState -> AbcTune -> AbcTune
@@ -394,8 +397,6 @@ flatNotedNumbers =
   in
     List.map invert flatNoteNumbers
       |> Dict.fromList 
-
-
 
 {- make a note's pitch comparable by translating to a string
    so it can be used in dictionaries

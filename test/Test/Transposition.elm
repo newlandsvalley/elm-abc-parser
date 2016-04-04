@@ -106,15 +106,25 @@ tests =
                gMinor
                gmPhrase
                )  
+        , test "identity transposition" (assertTranspositionMatches 
+               dmPhrase
+               dMinor
+               dmPhrase
+               )  
         ]
     keyChanges =  
       suite "inline key changes"
         [
-         test "key change Bm to Am" (assertTranspositionMatches 
-               keyChangeBm 
-               aMinor
-               keyChangeAm
-               ) 
+          test "key change Bm to Am" (assertTranspositionMatches 
+                keyChangeBm 
+                aMinor
+                keyChangeAm
+                ) 
+        , test "key change Am to Bm" (assertTranspositionMatches 
+                keyChangeAm 
+                bMinor
+                keyChangeBm
+                ) 
         ]
 {-
     single =
@@ -125,7 +135,7 @@ tests =
                gmPhraseLocal
                dMinor
                dmPhrase
-               ) 
+               )          
         ]
 -}
     in
@@ -174,11 +184,14 @@ gMajor = ({ pitchClass = G, accidental = Nothing, mode = Major }, [])
 gMinor : ModifiedKeySignature
 gMinor = ({ pitchClass = G, accidental = Nothing, mode = Minor }, [])
 
+aMajor : ModifiedKeySignature
+aMajor = ({ pitchClass = A, accidental = Nothing, mode = Major }, [])
+
 aMinor : ModifiedKeySignature
 aMinor = ({ pitchClass = A, accidental = Nothing, mode = Minor }, [])
 
-aMajor : ModifiedKeySignature
-aMajor = ({ pitchClass = A, accidental = Nothing, mode = Major }, [])
+bMinor : ModifiedKeySignature
+bMinor = ({ pitchClass = B, accidental = Nothing, mode = Minor }, [])
 
 gSharpMajor : ModifiedKeySignature
 gSharpMajor = ({ pitchClass = G, accidental = Just Sharp, mode = Major },[])
