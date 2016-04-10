@@ -1,7 +1,7 @@
 module Test.Abc (tests) where
 
 import ElmTest exposing (..)
-import Abc exposing (parse, parseError)
+import Abc exposing (parse, parseKeySignature, parseError)
 import Abc.ParseTree exposing (PitchClass(..), KeySignature, Accidental(..), Mode(..), AbcNote)
 import Abc.Canonical exposing (fromTune)
 import Maybe exposing (Maybe)
@@ -31,6 +31,18 @@ assertParses : String -> Assertion
 assertParses s = 
   let 
     parseResult = parse s
+  in 
+    case parseResult of
+      Ok res -> 
+        assert True
+      Err errs -> 
+        assert False
+
+{- assert the key signature parses -}
+assertKeySigParses : String -> Assertion
+assertKeySigParses s = 
+  let 
+    parseResult = parseKeySignature s
   in 
     case parseResult of
       Ok res -> 
@@ -155,6 +167,14 @@ tests =
         [ test "implied accidentals in key" (assertRoundTrip canonicalised)
         , test "explicit accidentals" (assertCanonicalMatches uncanonicalised canonicalised)
         ]
+    keySignature =
+      suite "key signature"
+        [
+          test "C# Major" (assertKeySigParses "C# Major")
+        , test "Bb Minor" (assertKeySigParses "Bb Minor")
+        , test "G Mixolydian" (assertKeySigParses "G Mixolydian")
+        , test "A Locrian" (assertKeySigParses "A Locrian")
+        ]
   in
     suite "Music Notation"
       [  header
@@ -162,6 +182,7 @@ tests =
       ,  structure
       ,  badInput
       ,  canonical
+      ,  keySignature
       ]
 
 -- these ABC samples must already be in canonical format for round-tripping to work
