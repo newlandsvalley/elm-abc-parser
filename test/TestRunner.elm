@@ -8,6 +8,7 @@ import Task
 
 import Test.Music as Music
 import Test.Transposition as Transposition
+import Test.Octave as Octave
 import Test.Abc as Abc
 
 all : Test
@@ -17,6 +18,7 @@ all =
       Abc.tests
     , Music.tests
     , Transposition.tests
+    , Octave.tests
     ]
 
 console : IO ()
