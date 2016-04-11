@@ -60,13 +60,19 @@ tests =
                (Ok eb)
                (transposeNote fMajor gMajor fnat)
                )
+        -- should produce an explicit b natural because we retain explicit (albeit unnecessary) accidentals
         , test "C# in AMaj to GMaj" (assertEqual
-               (Ok b)
+               (Ok bnat)
                (transposeNote gMajor aMajor cs)
                )       
         , test "C# in GMaj to AMaj" (assertEqual
                (Ok ds)
                (transposeNote aMajor gMajor cs)
+               )     
+        -- should produce an explicit e natural because it starts as an explicit sharp
+        , test "G# in Amin to FMin" (assertEqual
+               (Ok enat)
+               (transposeNote fMinor aMinor gs)
                )
         , test "B in DMaj to CMaj" (assertEqual
                (Ok a)
@@ -180,8 +186,14 @@ ds = { pitchClass = D,  accidental = Just Sharp, octave = 5, duration = fromInt 
 eb : AbcNote
 eb = { pitchClass = E,  accidental = Just Flat, octave = 4, duration = fromInt 1, tied = False }
 
+enat : AbcNote
+enat = { pitchClass = E,  accidental = Just Natural, octave = 4, duration = fromInt 1, tied = False }
+
 b : AbcNote
 b = { pitchClass = B,  accidental = Nothing, octave = 4, duration = fromInt 1, tied = False }
+
+bnat : AbcNote
+bnat = { pitchClass = B,  accidental = Just Natural, octave = 4, duration = fromInt 1, tied = False }
 
 f : AbcNote
 f = { pitchClass = F,  accidental = Nothing, octave = 4, duration = fromInt 1, tied = False }
@@ -192,11 +204,17 @@ fnat = { pitchClass = F,  accidental = Just Natural, octave = 4, duration = from
 g : AbcNote
 g = { pitchClass = G,  accidental = Nothing, octave = 4, duration = fromInt 1, tied = False }
 
+gs : AbcNote
+gs = { pitchClass = G,  accidental = Just Sharp, octave = 4, duration = fromInt 1, tied = False }
+
 a : AbcNote
 a = { pitchClass = A,  accidental = Nothing, octave = 4, duration = fromInt 1, tied = False }
 
 fMajor : ModifiedKeySignature
 fMajor = ({ pitchClass = F, accidental = Nothing, mode = Major }, [])
+
+fMinor : ModifiedKeySignature
+fMinor = ({ pitchClass = F, accidental = Nothing, mode = Minor }, [])
 
 gMajor : ModifiedKeySignature
 gMajor = ({ pitchClass = G, accidental = Nothing, mode = Major }, [])
