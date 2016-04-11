@@ -291,8 +291,10 @@ transposeKeySignatureBy i mks =
         |> withDefault (C, Nothing)
     -- modify the key accidentals likewise
     accs = List.map (transposeKeyAccidentalBy i) keyaccs
+    -- build the most likely enharmonic equivalent - don't use bizarre keys
+    newks = equivalentEnharmonicKeySig pc ma ks.mode
   in
-    ( { pitchClass = pc, accidental = ma, mode = ks.mode }, accs )
+    ( newks, accs )
 
 -- implementation
 
@@ -358,7 +360,7 @@ extremeFlatScale =
      List.map f flatScale
 
 
-{- enharmonic equivalence - don't use bizarre sharp keys when we have reasonable flat ones -}
+{- enharmonic equivalence of key classes - don't use bizarre sharp keys when we have reasonable flat ones -}
 equivalentEnharmonic : KeyClass -> KeyClass
 equivalentEnharmonic k = 
   case k of 
@@ -367,6 +369,23 @@ equivalentEnharmonic k =
    (D, Just Sharp) -> (E, Just Flat)
    (G, Just Sharp) -> (A, Just Flat)
    _ -> k
+
+{- enharmonic equivalence of full key signatures - don't use bizarre minor flat keys when we have reasonable sharp ones 
+   and vice versa.  Check both Major and Monor key signatures.
+-}
+equivalentEnharmonicKeySig : PitchClass -> Maybe Accidental -> Mode -> KeySignature
+equivalentEnharmonicKeySig pc ma m = 
+  case (pc, ma, m) of 
+   -- major key signatures
+   ( A, Just Sharp, Major ) -> { pitchClass = B, accidental = Just Flat, mode = Major }
+   ( D, Just Sharp, Major ) -> { pitchClass = E, accidental = Just Flat, mode = Major }
+   ( G, Just Sharp, Major ) -> { pitchClass = A, accidental = Just Flat, mode = Major } 
+   -- minor key signatures
+   ( G, Just Flat, Minor ) -> { pitchClass = F, accidental = Just Sharp, mode = Minor }
+   ( D, Just Flat, Minor ) -> { pitchClass = C, accidental = Just Sharp, mode = Minor }
+   ( A, Just Flat, Minor ) -> { pitchClass = G, accidental = Just Sharp, mode = Minor }
+   _ -> { pitchClass = pc, accidental = ma, mode = m }
+
 
 
 majorIntervals : Intervals

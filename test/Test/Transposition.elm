@@ -135,6 +135,16 @@ tests =
                 bMinor
                 keyChangeBm
                 ) 
+        , test "key change Bm to C#m" (assertTranspositionMatches 
+                keyChangeBm 
+                cSharpMinor
+                keyChangeCSharpm
+                )          
+        , test "key change C#m to Bm" (assertTranspositionMatches 
+                keyChangeCSharpm
+                bMinor
+                keyChangeBm 
+                )   
         ]
 {-
     single =
@@ -209,6 +219,9 @@ gSharpMajor = ({ pitchClass = G, accidental = Just Sharp, mode = Major },[])
 cMajor : ModifiedKeySignature
 cMajor = ({ pitchClass = C, accidental = Nothing, mode = Major },[])
 
+cSharpMinor : ModifiedKeySignature
+cSharpMinor = ({ pitchClass = C, accidental = Just Sharp, mode = Minor },[])
+
 dMajor : ModifiedKeySignature
 dMajor = ({ pitchClass = D, accidental = Nothing, mode = Major },[])
 
@@ -235,6 +248,8 @@ dmPhrase = "K: DMinor\r\n| D3E F6 EG |\r\n F2ED ^CDE^C A,4\r\n"
 keyChangeBm = "K: BMinor\r\n| B4 A4 B4 | d2f2 e2dc c2d2 |\r\nK: F#Minor\r\n| f4 e4 f4 | g2a2 b2ag g2a2 |\r\n"
 keyChangeAm = "K: AMinor\r\n| A4 G4 A4 | c2e2 d2cB B2c2 |\r\nK: EMinor\r\n| e4 d4 e4 | f2g2 a2gf f2g2 |\r\n"
 keyChangeEm = "K: EMinor\r\n| E4 D4 E4 | G2B2 A2GF F2G2 |\r\nK: BMinor\r\n| B4 A4 B4 | c2d2 e2dc c2d2 |\r\n"
+keyChangeCSharpm = "K: C#Minor\r\n| C4 B,4 C4 | E2G2 F2ED D2E2 |\r\nK: G#Minor\r\n| G4 F4 G4 | A2B2 c2BA A2B2 |\r\n"
+
 
 
 
