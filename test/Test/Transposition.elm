@@ -124,6 +124,16 @@ tests =
                 keyChangeAm 
                 bMinor
                 keyChangeBm
+                )         
+        , test "key change Bm to Em" (assertTranspositionMatches 
+                keyChangeBm 
+                eMinor
+                keyChangeEm
+                )   
+        , test "key change Em to Bm" (assertTranspositionMatches 
+                keyChangeEm 
+                bMinor
+                keyChangeBm
                 ) 
         ]
 {-
@@ -131,11 +141,11 @@ tests =
       suite "single test"
         [ 
 
-          test "Gm phrase with in-bar accidental" (assertTranspositionMatches 
-               gmPhraseLocal
-               dMinor
-               dmPhrase
-               )          
+         test "key change Em to Bm" (assertTranspositionMatches 
+                keyChangeEm 
+                bMinor
+                keyChangeBm
+                ) 
         ]
 -}
     in
@@ -205,6 +215,9 @@ dMajor = ({ pitchClass = D, accidental = Nothing, mode = Major },[])
 dMinor : ModifiedKeySignature
 dMinor = ({ pitchClass = D, accidental = Nothing, mode = Minor },[])
 
+eMinor : ModifiedKeySignature
+eMinor = ({ pitchClass = E, accidental = Nothing, mode = Minor },[])
+
 bFlatDorian : ModifiedKeySignature
 bFlatDorian = ({ pitchClass = B, accidental = Just Flat, mode = Dorian },[])
 
@@ -221,6 +234,8 @@ dmPhrase = "K: DMinor\r\n| D3E F6 EG |\r\n F2ED ^CDE^C A,4\r\n"
 
 keyChangeBm = "K: BMinor\r\n| B4 A4 B4 | d2f2 e2dc c2d2 |\r\nK: F#Minor\r\n| f4 e4 f4 | g2a2 b2ag g2a2 |\r\n"
 keyChangeAm = "K: AMinor\r\n| A4 G4 A4 | c2e2 d2cB B2c2 |\r\nK: EMinor\r\n| e4 d4 e4 | f2g2 a2gf f2g2 |\r\n"
+keyChangeEm = "K: EMinor\r\n| E4 D4 E4 | G2B2 A2GF F2G2 |\r\nK: BMinor\r\n| B4 A4 B4 | c2d2 e2dc c2d2 |\r\n"
+
 
 
 

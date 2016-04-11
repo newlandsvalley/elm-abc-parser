@@ -270,6 +270,30 @@ chordalNoteDuration t note chord =
   (60.0 * (Ratio.toFloat t.unitNoteLength)* (Ratio.toFloat note) * (Ratio.toFloat chord)) / 
     ((Ratio.toFloat t.tempoNoteLength) * (Basics.toFloat t.bpm))
 
+{-| transpose a key signature by a given distance -}
+transposeKeySignatureBy : Int -> ModifiedKeySignature -> ModifiedKeySignature
+transposeKeySignatureBy i mks =
+  let
+    (ks, keyaccs) = mks
+    -- turn the key sig to a string pattern and look up its index
+    pattern = (toString ks.pitchClass) ++ (accidentalPattern ks.accidental)
+    index =  withDefault 0 (Dict.get pattern chromaticScaleDict)
+    newIndex = (notesInChromaticScale + index + i) % notesInChromaticScale
+    -- keep hold of the sharp / flat nature of the original scale
+    scale =
+      if (isCOrSharpKey ks) then
+        sharpScale
+      else
+        flatScale
+    -- now look up the transposed key at the new index
+    (pc, ma) = 
+      getAt scale newIndex
+        |> withDefault (C, Nothing)
+    -- modify the key accidentals likewise
+    accs = List.map (transposeKeyAccidentalBy i) keyaccs
+  in
+    ( { pitchClass = pc, accidental = ma, mode = ks.mode }, accs )
+
 -- implementation
 
 {- works from C major up to B major but not beyond 
@@ -501,27 +525,7 @@ accidentalPattern ma =
   in
     withDefault "" (Maybe.map f ma)
 
-transposeKeySignatureBy : Int -> ModifiedKeySignature -> ModifiedKeySignature
-transposeKeySignatureBy i mks =
-  let
-    (ks, keyaccs) = mks
-    -- turn the key sig to a string pattern and look up its index
-    pattern = (toString ks.pitchClass) ++ (accidentalPattern ks.accidental)
-    index =  withDefault 0 (Dict.get pattern chromaticScaleDict)
-    -- keep hold of the sharp / flat nature of the original scale
-    scale =
-      if (isCOrSharpKey ks) then
-        sharpScale
-      else
-        flatScale
-    -- now look up the transposed key at the new index
-    (pc, ma) = 
-      getAt scale (index + i)
-        |> withDefault (C, Nothing)
-    -- modify the key accidentals likewise
-    accs = List.map (transposeKeyAccidentalBy i) keyaccs
-  in
-    ( { pitchClass = pc, accidental = ma, mode = ks.mode }, accs )
+
 
 {- transpose a key accidental  (a key signature modifier)
    not finished
