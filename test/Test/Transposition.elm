@@ -5,7 +5,6 @@ import Music.Transposition exposing (..)
 import Abc exposing (parse, parseError)
 import Abc.ParseTree exposing (PitchClass(..), KeySignature, ModifiedKeySignature, Accidental(..), Mode(..), AbcNote)
 import Abc.Canonical exposing (fromTune)
-import Maybe exposing (Maybe)
 import Result exposing (..)
 import Ratio exposing (Rational, over, fromInt)
 

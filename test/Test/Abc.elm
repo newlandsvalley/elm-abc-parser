@@ -4,7 +4,6 @@ import ElmTest exposing (..)
 import Abc exposing (parse, parseKeySignature, parseError)
 import Abc.ParseTree exposing (PitchClass(..), KeySignature, Accidental(..), Mode(..), AbcNote)
 import Abc.Canonical exposing (fromTune)
-import Maybe exposing (Maybe)
 
 
 import String

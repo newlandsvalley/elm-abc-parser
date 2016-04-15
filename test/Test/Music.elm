@@ -2,13 +2,12 @@ module Test.Music (tests) where
 
 import ElmTest exposing (..)
 import Music.Notation exposing (..)
-import Abc.ParseTree exposing (PitchClass(..), KeySignature, Accidental(..), Mode(..), AbcNote)
-import Maybe exposing (Maybe)
+import Abc.ParseTree exposing (PitchClass(..), KeySignature, Accidental(..), KeyAccidental, Mode(..), AbcNote)
 import Ratio exposing (Rational, over, fromInt)
 
 import String
 
-equivalentKeys : List KeyClass -> List KeyClass -> Bool
+equivalentKeys : List KeyAccidental -> List KeyAccidental -> Bool
 equivalentKeys actual expected =
   let
     f key acc = acc && (List.member key expected)
@@ -40,61 +39,61 @@ tests =
       suite "Major mode"
         [ test "G Major" (assert <| equivalentKeys 
              (keySet { pitchClass = G, accidental = Nothing, mode = Major }) 
-             [ (F, Just Sharp) ]
+             [ (F, Sharp) ]
              )      
         , test "Ab Major" (assert <| equivalentKeys 
              (keySet { pitchClass = A, accidental = Just Flat, mode = Major })
-             [ (B, Just Flat), (E, Just Flat), (A, Just Flat), (D, Just Flat) ]
+             [ (B, Flat), (E, Flat), (A, Flat), (D, Flat) ]
              )      
         , test "A Major" (assert <| equivalentKeys 
              (keySet { pitchClass = A, accidental = Nothing, mode = Major }) 
-             [ (C, Just Sharp), (F, Just Sharp), (G, Just Sharp)]
+             [ (C, Sharp), (F, Sharp), (G, Sharp)]
              )       
         , test "Bb Major" (assert <| equivalentKeys 
              (keySet { pitchClass = B, accidental = Just Flat, mode = Major })
-             [ (B, Just Flat), (E, Just Flat) ]
+             [ (B, Flat), (E, Flat) ]
              )      
         , test "B Major" (assert <| equivalentKeys 
              (keySet { pitchClass = B, accidental = Nothing, mode = Major }) 
-             [ (C, Just Sharp), (F, Just Sharp), (G, Just Sharp), (D, Just Sharp), (A, Just Sharp)]
+             [ (C, Sharp), (F, Sharp), (G, Sharp), (D, Sharp), (A, Sharp)]
              )     
         , test "C Major" (assert <| List.isEmpty
              (keySet { pitchClass = C, accidental = Nothing, mode = Major})
              )       
         , test "Db Major" (assert <| equivalentKeys 
              (keySet { pitchClass = D, accidental = Just Flat, mode = Major }) 
-             [ (B, Just Flat), (E, Just Flat), (A, Just Flat), (D, Just Flat), (G, Just Flat)]
+             [ (B, Flat), (E, Flat), (A, Flat), (D, Flat), (G, Flat)]
              )       
         , test "D Major" (assert <| equivalentKeys 
              (keySet { pitchClass = D, accidental = Nothing, mode = Major })
-             [ (F, Just Sharp), (C, Just Sharp) ]
+             [ (F, Sharp), (C, Sharp) ]
              )     
         , test "Eb Major" (assert <| equivalentKeys 
              (keySet { pitchClass = E, accidental = Just Flat, mode = Major })
-             [ (B, Just Flat), (E, Just Flat), (A, Just Flat)  ]
+             [ (B, Flat), (E, Flat), (A, Flat)  ]
              )        
         , test "E Major" (assert <| equivalentKeys 
              (keySet { pitchClass = E, accidental = Nothing, mode = Major }) 
-             [ (C, Just Sharp), (F, Just Sharp), (G, Just Sharp), (D, Just Sharp)]
+             [ (C, Sharp), (F, Sharp), (G, Sharp), (D, Sharp)]
              )            
         , test "F Major" (assert <| equivalentKeys 
              (keySet { pitchClass = F, accidental = Nothing, mode = Major })
-             [ (B, Just Flat) ]
+             [ (B, Flat) ]
              )       
         , test "F# Major" (assert <| equivalentKeys 
              (keySet { pitchClass = F, accidental = Just Sharp, mode = Major }) 
-             [ (C, Just Sharp), (F, Just Sharp), (G, Just Sharp), (D, Just Sharp), (A, Just Sharp), (E, Just Sharp)]
+             [ (C, Sharp), (F, Sharp), (G, Sharp), (D, Sharp), (A, Sharp), (E, Sharp)]
              )           
         , test "Gb Major" (assert <| equivalentKeys 
              (keySet { pitchClass = G, accidental = Just Flat, mode = Major }) 
-             [ (B, Just Flat), (E, Just Flat), (A, Just Flat), (D, Just Flat), (G, Just Flat), (C, Just Flat)]
+             [ (B, Flat), (E, Flat), (A, Flat), (D, Flat), (G, Flat), (C, Flat)]
              )       
         ]    
     minorMode =
       suite "Minor mode"
         [ test "G Minor" (assert <| equivalentKeys 
              (keySet { pitchClass = G, accidental = Nothing, mode = Minor }) 
-             [ (B, Just Flat), (E, Just Flat) ]
+             [ (B, Flat), (E, Flat) ]
              )        
         , test "A Minor" (assert <| List.isEmpty
              (keySet { pitchClass = A, accidental = Nothing, mode = Minor})
@@ -103,57 +102,57 @@ tests =
     klezmerMode = 
       suite "Klezmer mode"
         [ test "D Phrygian with sharpened f" (assert <| equivalentKeys 
-             (modifiedKeySet ({ pitchClass = D, accidental = Nothing, mode = Phrygian }, [{ pitchClass = F, accidental = Sharp}]) ) 
-             [ (B, Just Flat), (E, Just Flat), (F, Just Sharp) ]
+             (modifiedKeySet ({ pitchClass = D, accidental = Nothing, mode = Phrygian }, [(F, Sharp)]) ) 
+             [ (B, Flat), (E, Flat), (F, Sharp) ]
              )   
         ]  
     otherModes =
       suite "Other mode"
         [ test "C Doriam" (assert <| equivalentKeys 
              (keySet { pitchClass = C, accidental = Nothing, mode = Dorian }) 
-             [ (B, Just Flat), (E, Just Flat) ]
+             [ (B, Flat), (E, Flat) ]
              )        
         , test "D Dorian" (assert <| List.isEmpty
              (keySet { pitchClass = D, accidental = Nothing, mode = Dorian})
              )     
         , test "C Phrygian" (assert <| equivalentKeys 
              (keySet { pitchClass = C, accidental = Nothing, mode = Phrygian }) 
-             [ (B, Just Flat), (E, Just Flat), (A, Just Flat), (D, Just Flat) ]
+             [ (B, Flat), (E, Flat), (A, Flat), (D, Flat) ]
              )              
         , test "E Phrygian" (assert <| List.isEmpty
              (keySet { pitchClass = E, accidental = Nothing, mode = Phrygian})
              )       
         , test "C Lydian" (assert <| equivalentKeys 
              (keySet { pitchClass = C, accidental = Nothing, mode = Lydian }) 
-             [ (F, Just Sharp) ]
+             [ (F, Sharp) ]
              )             
         , test "F Lydian" (assert <| List.isEmpty
              (keySet { pitchClass = F, accidental = Nothing, mode = Lydian})
              )         
         , test "C Mixolyydian" (assert <| equivalentKeys 
              (keySet { pitchClass = C, accidental = Nothing, mode = Mixolydian }) 
-             [ (B, Just Flat) ]
+             [ (B, Flat) ]
              )                 
         , test "G Lydian" (assert <| List.isEmpty
              (keySet { pitchClass = G, accidental = Nothing, mode = Mixolydian})
              )             
         , test "C Aeolian" (assert <| equivalentKeys 
              (keySet { pitchClass = C, accidental = Nothing, mode = Aeolian }) 
-             [ (B, Just Flat), (E, Just Flat), (A, Just Flat)  ]
+             [ (B, Flat), (E, Flat), (A, Flat)  ]
              )                        
         , test "A Aeolian" (assert <| List.isEmpty
              (keySet { pitchClass = A, accidental = Nothing, mode = Aeolian})
              )                
         , test "C Locrian" (assert <| equivalentKeys 
              (keySet { pitchClass = C, accidental = Nothing, mode = Locrian }) 
-             [ (B, Just Flat), (E, Just Flat), (A, Just Flat), (D, Just Flat), (G, Just Flat)]
+             [ (B, Flat), (E, Flat), (A, Flat), (D, Flat), (G, Flat)]
              )                           
         , test "B Locrian" (assert <| List.isEmpty
              (keySet { pitchClass = B, accidental = Nothing, mode = Locrian})
              )        
         , test "G Ionian" (assert <| equivalentKeys 
              (keySet { pitchClass = G, accidental = Nothing, mode = Ionian }) 
-             [ (F, Just Sharp) ]
+             [ (F, Sharp) ]
              )       
         , test "C Ionian" (assert <| List.isEmpty
              (keySet { pitchClass = C, accidental = Nothing, mode = Major})
