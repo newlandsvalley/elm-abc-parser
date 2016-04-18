@@ -164,7 +164,8 @@ tests =
     canonical = 
       suite "canonical"
         [ test "implied accidentals in key" (assertRoundTrip canonicalised)
-        , test "explicit accidentals" (assertCanonicalMatches uncanonicalised canonicalised)
+        -- probably dropping this from Canonical now
+        -- , test "explicit accidentals" (assertCanonicalMatches uncanonicalised canonicalised)
         ]
     keySignature =
       suite "key signature"

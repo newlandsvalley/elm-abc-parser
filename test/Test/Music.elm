@@ -162,11 +162,11 @@ tests =
       suite "lookups"
         [ test "f in G Major" (assertEqual
                (Just Sharp)
-               (accidentalImplicitInKey fNatural (gMajor, []))
+               (accidentalImplicitInKey F (gMajor, []))
                )
         , test "f in C Major" (assertEqual
                (Nothing)
-               (accidentalImplicitInKey fNatural (cMajor, []))
+               (accidentalImplicitInKey F (cMajor, []))
                )
 
         ]   

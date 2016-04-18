@@ -30,6 +30,7 @@ assertTranspositionMatches s targetks target =
 tests : Test
 tests =
   let 
+
     keys =
       suite "keys"
         [ test "C to G#" (assertEqual
@@ -59,16 +60,15 @@ tests =
                (Ok eb)
                (transposeNote fMajor gMajor fnat)
                )
-        -- should produce an explicit b natural because we retain explicit (albeit unnecessary) accidentals
         , test "C# in AMaj to GMaj" (assertEqual
-               (Ok bnat)
+               (Ok b)
                (transposeNote gMajor aMajor cs)
                )       
         , test "C# in GMaj to AMaj" (assertEqual
                (Ok ds)
                (transposeNote aMajor gMajor cs)
                )     
-        -- should produce an explicit e natural because it starts as an explicit sharp
+        -- should produce an explicit e natural because there is no e natural in the diatonic scale of FMin
         , test "G# in Amin to FMin" (assertEqual
                (Ok enat)
                (transposeNote fMinor aMinor gs)
@@ -109,7 +109,24 @@ tests =
         , test "Dm phrase to Gm phrase" (assertTranspositionMatches 
                dmPhrase
                gMinor
-               gmPhrase
+               gmPhraseLocal
+               )  
+        , test "Bm phrase to Em phrase" (assertTranspositionMatches 
+               bmPhrase
+               eMinor
+               emPhrase
+               )   
+        -- this next test fails
+        , test "Am phrase to Fm phrase" (assertTranspositionMatches 
+               amPhrase
+               fMinor
+               fmPhrase
+               )        
+        -- this next test fails
+        , test "Am phrase to F#m phrase" (assertTranspositionMatches 
+               amPhrase0
+               fSharpMinor
+               fsharpmPhrase0
                )  
         , test "identity transposition" (assertTranspositionMatches 
                dmPhrase
@@ -133,7 +150,7 @@ tests =
         , test "key change Bm to Em" (assertTranspositionMatches 
                 keyChangeBm 
                 eMinor
-                keyChangeEm
+                keyChangeEmHigh
                 )   
         , test "key change Em to Bm" (assertTranspositionMatches 
                 keyChangeEm 
@@ -143,7 +160,7 @@ tests =
         , test "key change Bm to C#m" (assertTranspositionMatches 
                 keyChangeBm 
                 cSharpMinor
-                keyChangeCSharpm
+                keyChangeCSharpmHigh
                 )          
         , test "key change C#m to Bm" (assertTranspositionMatches 
                 keyChangeCSharpm
@@ -156,11 +173,11 @@ tests =
       suite "single test"
         [ 
 
-         test "key change Em to Bm" (assertTranspositionMatches 
-                keyChangeEm 
-                bMinor
-                keyChangeBm
-                ) 
+          test "Am phrase to F#m phrase" (assertTranspositionMatches 
+               amPhrase0
+               fSharpMinor
+               fsharpmPhrase0
+               )  
         ]
 -}
     in
@@ -215,6 +232,9 @@ fMajor = ({ pitchClass = F, accidental = Nothing, mode = Major }, [])
 fMinor : ModifiedKeySignature
 fMinor = ({ pitchClass = F, accidental = Nothing, mode = Minor }, [])
 
+fSharpMinor : ModifiedKeySignature
+fSharpMinor = ({ pitchClass = F, accidental = Just Sharp, mode = Minor },[])
+
 gMajor : ModifiedKeySignature
 gMajor = ({ pitchClass = G, accidental = Nothing, mode = Major }, [])
 
@@ -260,12 +280,24 @@ dPhrase = "K: DMajor\r\n| Bc (3def [ga] |\r\n"
 fPhrase = "K: FMajor\r\n| de (3fga [bc'] |\r\n"
 gmPhrase = "K: GMinor\r\n| G3A B6 Ac |\r\n B2AG ^FGA^F D4\r\n"
 gmPhraseLocal = "K: GMinor\r\n| G3A B6 Ac |\r\n B2AG ^FGAF D4\r\n"  -- second F implicitly sharpened
-dmPhrase = "K: DMinor\r\n| D3E F6 EG |\r\n F2ED ^CDE^C A,4\r\n"
+dmPhrase = "K: DMinor\r\n| D3E F6 EG |\r\n F2ED ^CDEC A,4\r\n"
+
+bmPhrase = "K: BMinor\r\n| B4 A4 B4 | c2d2 e2dc c2d2 |\r\n"
+emPhrase = "K: EMinor\r\n| e4 d4 e4 | f2g2 a2gf f2g2 |\r\n"
+
+amPhrase0 = "K: AMinor\r\n| edcB A2E2 C2E2 | A^GAB cBcd e4 |\r\n"
+fsharpmPhrase0 = "K: F#Minor\r\n| cBAG F2C2 A,2C2 | F=F^FG AGAB c4 |\r\n"
+
+
+amPhrase = "K: AMinor\r\n| e2ef g2gf e2ed | c2ce d2dB c4 |\r\n"
+fmPhrase = "K: FMinor\r\n| c2c_d e2e_d c2cB | A2Ac B2BG A4 | |\r\n"
 
 keyChangeBm = "K: BMinor\r\n| B4 A4 B4 | d2f2 e2dc c2d2 |\r\nK: F#Minor\r\n| f4 e4 f4 | g2a2 b2ag g2a2 |\r\n"
 keyChangeAm = "K: AMinor\r\n| A4 G4 A4 | c2e2 d2cB B2c2 |\r\nK: EMinor\r\n| e4 d4 e4 | f2g2 a2gf f2g2 |\r\n"
 keyChangeEm = "K: EMinor\r\n| E4 D4 E4 | G2B2 A2GF F2G2 |\r\nK: BMinor\r\n| B4 A4 B4 | c2d2 e2dc c2d2 |\r\n"
+keyChangeEmHigh = "K: EMinor\r\n| e4 d4 e4 | g2b2 a2gf f2g2 |\r\nK: BMinor\r\n| b4 a4 b4 | c'2d'2 e'2d'c' c'2d'2 |\r\n"
 keyChangeCSharpm = "K: C#Minor\r\n| C4 B,4 C4 | E2G2 F2ED D2E2 |\r\nK: G#Minor\r\n| G4 F4 G4 | A2B2 c2BA A2B2 |\r\n"
+keyChangeCSharpmHigh = "K: C#Minor\r\n| c4 B4 c4 | e2g2 f2ed d2e2 |\r\nK: G#Minor\r\n| g4 f4 g4 | a2b2 c'2ba a2b2 |\r\n"
 
 
 
