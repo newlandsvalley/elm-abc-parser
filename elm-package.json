@@ -1,6 +1,6 @@
 {
     "version": "1.0.0",
-    "summary": "Experimental library for parsing MIDI files",
+    "summary": "Experimental library for parsing ABC files",
     "repository": "https://github.com/newlandsvalley/elm-abc-parser.git",
     "license": "BSD3",
     "source-directories": [
@@ -8,8 +8,11 @@
     ],
     "exposed-modules": [
         "Abc",
+        "Abc.Canonical",
         "Abc.ParseTree",
-        "Music.Notation"
+        "Music.Notation",
+        "Music.Octave",
+        "Music.Transposition"
     ],
     "native-modules": false,   
     "dependencies": {
@@ -21,3 +24,4 @@
     },
     "elm-version": "0.16.0 <= v < 0.17.0"
 }
+

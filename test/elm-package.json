@@ -11,7 +11,7 @@
     ],
     "exposed-modules": [],
     "dependencies": {
-        "Bogdanp/elm-combine": "2.0.0 <= v < 3.0.0",
+        "Bogdanp/elm-combine": "2.0.2 <= v < 3.0.0",
         "circuithub/elm-list-extra": "3.9.0 <= v < 4.0.0",
         "circuithub/elm-maybe-extra": "1.6.0 <= v < 2.0.0",
         "deadfoxygrandpa/elm-test": "3.0.1 <= v < 4.0.0",

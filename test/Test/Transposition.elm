@@ -116,13 +116,11 @@ tests =
                eMinor
                emPhrase
                )   
-        -- this next test fails
         , test "Am phrase to Fm phrase" (assertTranspositionMatches 
                amPhrase
                fMinor
                fmPhrase
                )        
-        -- this next test fails
         , test "Am phrase to F#m phrase" (assertTranspositionMatches 
                amPhrase0
                fSharpMinor
@@ -132,6 +130,11 @@ tests =
                dmPhrase
                dMinor
                dmPhrase
+               )  
+        , test "Cm phrase to Am phrase" (assertTranspositionMatches 
+               cmPhrase1
+               aMinor
+               amPhrase1High
                )  
         ]
     keyChanges =  
@@ -173,10 +176,10 @@ tests =
       suite "single test"
         [ 
 
-          test "Am phrase to F#m phrase" (assertTranspositionMatches 
-               amPhrase0
-               fSharpMinor
-               fsharpmPhrase0
+          test "fm phrase to Am phrase" (assertTranspositionMatches 
+               fmPhrase1
+               aMinor
+               amPhrase1
                )  
         ]
 -}
@@ -288,9 +291,14 @@ emPhrase = "K: EMinor\r\n| e4 d4 e4 | f2g2 a2gf f2g2 |\r\n"
 amPhrase0 = "K: AMinor\r\n| edcB A2E2 C2E2 | A^GAB cBcd e4 |\r\n"
 fsharpmPhrase0 = "K: F#Minor\r\n| cBAG F2C2 A,2C2 | F=F^FG AGAB c4 |\r\n"
 
+amPhrase1High = "K: AMinor\r\n| c'2ba ^gabg e4 |\r\n"
+amPhrase1 = "K: AMinor\r\n| c2BA ^GABG E4 |\r\n"
+cmPhrase1 = "K: CMinor\r\n| e2dc =BcdB G4 |\r\n"
+fmPhrase1 = "K: FMinor\r\n| A2GF =EFGE C4 |\r\n"
+
 
 amPhrase = "K: AMinor\r\n| e2ef g2gf e2ed | c2ce d2dB c4 |\r\n"
-fmPhrase = "K: FMinor\r\n| c2c_d e2e_d c2cB | A2Ac B2BG A4 | |\r\n"
+fmPhrase = "K: FMinor\r\n| c2c^c e2ec =c2cB | A2Ac B2BG A4 |\r\n"
 
 keyChangeBm = "K: BMinor\r\n| B4 A4 B4 | d2f2 e2dc c2d2 |\r\nK: F#Minor\r\n| f4 e4 f4 | g2a2 b2ag g2a2 |\r\n"
 keyChangeAm = "K: AMinor\r\n| A4 G4 A4 | c2e2 d2cB B2c2 |\r\nK: EMinor\r\n| e4 d4 e4 | f2g2 a2gf f2g2 |\r\n"
