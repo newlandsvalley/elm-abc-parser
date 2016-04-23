@@ -131,6 +131,12 @@ view address model =
     , button [ onClick address (Load "abc/tie.abc") ] [ text "tie" ]
     , button [ onClick address (Load "abc/chord.abc") ] [ text "chord" ]
     , button [ onClick address (Load "abc/variantending.abc") ] [ text "variant ending" ]
+    , button [ onClick address (Load "abc/repeat1.abc") ] [ text "repeat 1" ]
+    , button [ onClick address (Load "abc/repeat2.abc") ] [ text "repeat 2" ]
+    , button [ onClick address (Load "abc/repeat3.abc") ] [ text "repeat 3" ]
+    , button [ onClick address (Load "abc/repeat4.abc") ] [ text "repeat 4" ]
+    , button [ onClick address (Load "abc/repeat5.abc") ] [ text "repeat 5" ]
+    , button [ onClick address (Load "abc/repeat6.abc") ] [ text "repeat 6" ]
     , div [  ] (checkbox address model.expandRepeats ExpandRepeats "expand repeats")
     , div [  ] [ text ("parse result: " ++ (viewPerformanceResult model.performance)) ]
     ]
