@@ -32,6 +32,8 @@ Implementation Notes
 Slurs are not implemented in a way that I like (where you recognize the left bracket, then the slurred notes and finally the right bracket; thus balancing the brackets).  This seems to be a limitation in the spec - this is written in a line-oriented fashion, where lines of notes may possibly be interrupted by in-line headers. However, in the wild (and perhaps the spec - it's unclear) slurs may occur across lines.  This means that all that can be easily recognised is the individual brackets '(' and ') that frame   the slur and which are now disconnected from each other in any meaningful sense.
 
 Bar lines are specified very badly and the parser tries to make the best of a bad job.
+
+In particular, I'm concerned about the ambiguity introduced by bar lines of the following form - '|['.  This conflicts when inline headers or chords follow immediately after the bar line - e.g. '|[T: 9/8]' or '|[GBD]'.  In this parser such constructions must be separated from the bar line by a space.
  
  
 
