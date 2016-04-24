@@ -150,6 +150,26 @@ transposeTuneBody state body =
     in
       List.reverse tb
 
+processHeader : TranspositionState -> Header -> (Header, TranspositionState)
+processHeader state h =
+  case h of       
+     Key mks -> 
+       let
+         newmks = transposeKeySignatureBy state.keyDistance mks
+         -- newmks = log "\r\nkey change\r\n" (transposeKeySignatureBy state.keyDistance mks)
+       in
+         (Key newmks, 
+           {state | sourcemks = mks
+                  , sourceBarAccidentals = Music.Accidentals.empty
+                  , targetmks = newmks
+                  , targetKeySet = modifiedKeySet newmks
+                  , targetScale = diatonicScale (fst newmks)
+                  , targetBarAccidentals = Music.Accidentals.empty 
+          }
+        )
+     _ -> (h, state)
+
+
 transposeBodyPart : TranspositionState -> BodyPart -> (BodyPart, TranspositionState)
 transposeBodyPart state bp =
   case bp of
@@ -161,22 +181,10 @@ transposeBodyPart state bp =
         (Score ms1, s1)
     -- transpose any Key header found inline
     BodyInfo h ->     
-      case h of       
-        Key mks -> 
-          let
-            newmks = transposeKeySignatureBy state.keyDistance mks
-            -- newmks = log "\r\nkey change\r\n" (transposeKeySignatureBy state.keyDistance mks)
-          in
-           (BodyInfo (Key newmks), 
-             {state | sourcemks = mks
-                    , sourceBarAccidentals = Music.Accidentals.empty
-                    , targetmks = newmks
-                    , targetKeySet = modifiedKeySet newmks
-                    , targetScale = diatonicScale (fst newmks)
-                    , targetBarAccidentals = Music.Accidentals.empty 
-             }
-           )
-        _ -> (bp, state)
+      let
+        (h1, state) = processHeader state h
+      in
+        (BodyInfo h1, state)
 
 transposeMusic : TranspositionState -> Music -> (Music, TranspositionState)
 transposeMusic state m =
@@ -222,7 +230,15 @@ transposeMusic state m =
     ChordSymbol s -> (Ignore, state)
 
     -- new bar, initialise accidentals list
-    Barline b -> (Barline b, { state | sourceBarAccidentals = Music.Accidentals.empty, targetBarAccidentals = Music.Accidentals.empty })
+    Barline b -> 
+      (Barline b, { state | sourceBarAccidentals = Music.Accidentals.empty, targetBarAccidentals = Music.Accidentals.empty })
+
+    -- an inline header
+    Inline h ->     
+      let
+        (h1, state) = processHeader state h
+      in
+        (Inline h1, state)
 
     _ -> (m, state)
 

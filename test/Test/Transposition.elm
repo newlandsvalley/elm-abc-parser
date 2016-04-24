@@ -169,7 +169,12 @@ tests =
                 keyChangeCSharpm
                 bMinor
                 keyChangeBm 
-                )   
+                )       
+        , test "key change Bm to Am inline" (assertTranspositionMatches 
+                keyChangeBmInline 
+                aMinor
+                keyChangeAmInline
+                ) 
         ]
     in
       suite "Music Transposition"
@@ -311,6 +316,9 @@ keyChangeEm = "K: EMinor\r\n| E4 D4 E4 | G2B2 A2GF F2G2 |\r\nK: BMinor\r\n| B4 A
 keyChangeEmHigh = "K: EMinor\r\n| e4 d4 e4 | g2b2 a2gf f2g2 |\r\nK: BMinor\r\n| b4 a4 b4 | c'2d'2 e'2d'c' c'2d'2 |\r\n"
 keyChangeCSharpm = "K: C#Minor\r\n| C4 B,4 C4 | E2G2 F2ED D2E2 |\r\nK: G#Minor\r\n| G4 F4 G4 | A2B2 c2BA A2B2 |\r\n"
 keyChangeCSharpmHigh = "K: C#Minor\r\n| c4 B4 c4 | e2g2 f2ed d2e2 |\r\nK: G#Minor\r\n| g4 f4 g4 | a2b2 c'2ba a2b2 |\r\n"
+
+keyChangeBmInline = "K: BMinor\r\n| B4 A4 B4 | d2f2 e2dc c2d2 | [K: F#Minor] f4 e4 f4 | g2a2 b2ag g2a2 |\r\n"
+keyChangeAmInline = "K: AMinor\r\n| A4 G4 A4 | c2e2 d2cB B2c2 | [K: EMinor] e4 d4 e4 | f2g2 a2gf f2g2 |\r\n"
 
 
 
