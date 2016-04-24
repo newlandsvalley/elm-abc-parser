@@ -1,4 +1,4 @@
-module Test.Transposition (tests) where
+module Test.Transposition (tests, singletest) where
 
 import ElmTest exposing (..)
 import Music.Transposition exposing (..)
@@ -171,18 +171,6 @@ tests =
                 keyChangeBm 
                 )   
         ]
-{-
-    single =
-      suite "single test"
-        [ 
-
-          test "fm phrase to Am phrase" (assertTranspositionMatches 
-               fmPhrase1
-               aMinor
-               amPhrase1
-               )  
-        ]
--}
     in
       suite "Music Transposition"
         [ 
@@ -191,9 +179,26 @@ tests =
         , notes
         , phrases
         , keyChanges
-        {- -}
-        -- single
         ]
+
+-- a simple wrapper for running a single test
+singletest : Test
+singletest =
+  let     
+    single =
+      suite "single test"
+        [ 
+          test "fm phrase to Am phrase" (assertTranspositionMatches 
+               fmPhrase1
+               aMinor
+               amPhrase1
+               )  
+        ]  
+  in
+    suite "just one test"
+     [ 
+       single
+     ] 
 
 -- note C Sharp and D Sharp are in octave 5 all the other notes are in octave 4 
 cs : AbcNote

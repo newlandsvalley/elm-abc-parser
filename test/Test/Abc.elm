@@ -1,4 +1,4 @@
-module Test.Abc (tests) where
+module Test.Abc (tests, singletest) where
 
 import ElmTest exposing (..)
 import Abc exposing (parse, parseKeySignature, parseError)
@@ -159,6 +159,7 @@ tests =
            must be separated by spaces
         -}  
         -- , test "inlineBracket1" (assertRoundTrip inlineBracket1)
+        , test "inlineKey" (assertRoundTrip inlineKey)
         , test "inlineComment" (assertRoundTrip inlineComment)
         ]   
     badInput = 
@@ -181,6 +182,11 @@ tests =
         , test "G Mixolydian" (assertKeySigParses "G Mixolydian")
         , test "A Locrian" (assertKeySigParses "A Locrian")
         ]
+    single =
+      suite "single test"
+        [ 
+          test "inlineKey" (assertRoundTrip inlineKey)
+        ]
   in
     suite "Music Notation"
       [  header
@@ -190,6 +196,21 @@ tests =
       ,  canonical
       ,  keySignature
       ]
+
+-- a simple wrapper for running a single test
+singletest : Test
+singletest =
+  let     
+    single =
+      suite "single test"
+        [ 
+          test "inlineKey" (assertRoundTrip inlineKey)
+        ]  
+  in
+    suite "just one test"
+     [ 
+       single
+     ] 
 
 -- these ABC samples must already be in canonical format for round-tripping to work
 -- because of the exact string matching algorithm
@@ -257,8 +278,9 @@ bracketInHeader = "r: this is a remark [part 1]\r\n| ABC |\r\n"
 
 -- structure
 inline = "| ABC z2 def z/ \r\nQ: 1/4=120\r\n| ABC z2 def z/ |\r\n"
-inlineBracket = "| ABC def g3 | [T: 6/8] A3 A3 |\r\n"
-inlineBracket1 = "| ABC def g3 |[T: 6/8] A3 A3 |\r\n"
+inlineBracket = "| ABC def g3 | [L: 1/8] A3 A3 |\r\n"
+inlineBracket1 = "| ABC def g3 |[L: i/8] A3 A3 |\r\n"
+inlineKey = "| ABC def g3 | [K: AMajor] g3 a3 |\r\n"
 inlineComment = "| ABC z2 def z/ \r\n%% this is a comment\r\n| ABC z2 def z/ |\r\n"
 
 -- bad input
