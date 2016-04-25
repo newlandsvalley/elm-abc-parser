@@ -822,22 +822,28 @@ buildKey c ks ka = Key (ks, ka)
   which may have multiple different types of bar line markers (|,[,]) and repeat markers (:)  
   Try to normalise to representations of basic shapes like (|, |:, :|, :||, ||:, ||, :|:, :||: )
 
-  This drops support in the parse tree for 'thick' bar lines of the form '[|' and '|]'
-  this is OK for the current use as a player, but will not be too good for use in an application printing a score
-  Maybe we'll put in support later on when the need arises - we can do it simply if we re-specify Bar.lines 
 -}
 buildBarline : String -> Maybe Int -> Music
 buildBarline s i = 
   let 
+    -- estimate the bar separator thickness
+    thickness =
+      if (String.contains "|]" s) then
+         ThinThick
+      else if (String.contains "[|" s) then
+         ThickThin
+      else if (String.contains "||" s) then
+         ThinThin
+      else
+         Thin
+
+    -- now normalise all lines to '|' 
     f c = case c of
       '[' -> '|'
       ']' -> '|'
       _ -> c
-    -- normalise all lines to '|'
     normalised = String.map f s
-    -- count the lines up to a maximum of 2, minimum of 1
-    lines = String.length (String.filter (\c -> c == '|') normalised)
-    normalisedLineCount = max (min lines 2) 1 
+
     -- count the repeat markers
     repeatCount = String.length (String.filter (\c -> c == ':') normalised)
     -- set the repeat
@@ -852,7 +858,7 @@ buildBarline s i =
        else 
          Just BeginAndEnd
   in
-    Barline { lines = normalisedLineCount, repeat = repeat, iteration = i }
+    Barline { thickness = thickness, repeat = repeat, iteration = i }
 
   
 buildNote : Maybe Accidental -> String -> Int -> Maybe Rational -> Maybe Char -> AbcNote
