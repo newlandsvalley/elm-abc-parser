@@ -154,11 +154,7 @@ tests =
       suite "structure"
         [ test "inline" (assertRoundTrip inline)
         , test "inlineBracket" (assertRoundTrip inlineBracket)
-        {- this next test fails because (I think) of an ambiguity in the language.  A Bar line may be introduced as '|['
-           and this conflicts with an immediate inline header e.g. '|[T: .....]'.  So in this parser, inline headers
-           must be separated by spaces
-        -}  
-        -- , test "inlineBracket1" (assertRoundTrip inlineBracket1)
+        , test "inlineBracket1" (assertRoundTrip inlineBracket1)
         , test "inlineKey" (assertRoundTrip inlineKey)
         , test "inlineComment" (assertRoundTrip inlineComment)
         ]   
@@ -279,7 +275,7 @@ bracketInHeader = "r: this is a remark [part 1]\r\n| ABC |\r\n"
 -- structure
 inline = "| ABC z2 def z/ \r\nQ: 1/4=120\r\n| ABC z2 def z/ |\r\n"
 inlineBracket = "| ABC def g3 | [L: 1/8] A3 A3 |\r\n"
-inlineBracket1 = "| ABC def g3 |[L: i/8] A3 A3 |\r\n"
+inlineBracket1 = "| ABC def g3 |[L: 1/8] A3 A3 |\r\n"  -- support no gap between bar line and inline header
 inlineKey = "| ABC def g3 | [K: AMajor] g3 a3 |\r\n"
 inlineComment = "| ABC z2 def z/ \r\n%% this is a comment\r\n| ABC z2 def z/ |\r\n"
 

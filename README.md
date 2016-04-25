@@ -10,7 +10,7 @@ To parse an ABC string you can use:
     abc
      |> parse 
      
-Additional facilities exist in the [Music](https://github.com/newlandsvalley/elm-abc-parser/tree/master/src/Music) modules to manipulate the [parse tree](https://github.com/newlandsvalley/elm-abc-parser/blob/master/src/Abc/ParseTree.elm) in order (for example) to transpose a tune.
+Additional facilities exist in the [Music](https://github.com/newlandsvalley/elm-abc-parser/tree/master/src/Music) modules to manipulate the [parse tree](https://github.com/newlandsvalley/elm-abc-parser/blob/master/src/Abc/ParseTree.elm) in order (for example) to transpose a tune or change its octave.
      
 Dependencies
 ------------
@@ -33,8 +33,7 @@ Slurs are not implemented in a way that I like (where you recognize the left bra
 
 Bar lines are specified very badly and the parser tries to make the best of a bad job.
 
-In particular, I'm concerned about the ambiguity introduced by bar lines of the following form - '|['.  This conflicts when inline headers or chords follow immediately after the bar line - e.g. '|[T: 9/8]' or '|[GBD]'.  In this parser such constructions must be separated from the bar line by a space.
- 
+
  
 
 
