@@ -1,4 +1,5 @@
-module Test.Abc (tests, singletest) where
+module Test.Abc exposing 
+  (tests, singletest) 
 
 import ElmTest exposing (..)
 import Abc exposing (parse, parseKeySignature, parseError)

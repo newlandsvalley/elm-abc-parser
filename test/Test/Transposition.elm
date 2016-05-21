@@ -1,4 +1,5 @@
-module Test.Transposition (tests, singletest) where
+module Test.Transposition exposing
+  (tests, singletest)
 
 import ElmTest exposing (..)
 import Music.Transposition exposing (..)

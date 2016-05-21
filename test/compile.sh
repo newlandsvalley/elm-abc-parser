@@ -1,2 +1,2 @@
-elm-make examples/parser/Main.elm --output Main.html
+elm-make examples/parser/Parser.elm --output Main.html
 

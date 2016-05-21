@@ -1,8 +1,8 @@
-module Combine.Extra 
+module Combine.Extra exposing
    ( manyTill'
    , leftBiasedOr
    )
-   where
+   
 
 {-|  Extension functions to elm-combine to allow custom error-reporting
 

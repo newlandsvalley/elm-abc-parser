@@ -1,4 +1,5 @@
-module Test.Music (tests) where
+module Test.Music exposing 
+  (tests) 
 
 import ElmTest exposing (..)
 import Music.Notation exposing (..)

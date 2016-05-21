@@ -1,4 +1,5 @@
-module Test.Octave (tests) where
+module Test.Octave exposing 
+  (tests)
 
 import ElmTest exposing (..)
 import Music.Octave exposing (..)

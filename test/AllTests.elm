@@ -1,10 +1,6 @@
-module Main where
-
-import Signal exposing (Signal)
+module AllTests exposing (..)
 
 import ElmTest exposing (..)
-import Console exposing (IO, run)
-import Task
 
 import Test.Music as Music
 import Test.Transposition as Transposition
@@ -21,8 +17,6 @@ all =
     , Octave.tests
     ]
 
-console : IO ()
-console = consoleRunner all
-
-port runner : Signal (Task.Task x ())
-port runner = run console
+main : Program Never
+main =
+  runSuite all

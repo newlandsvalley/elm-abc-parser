@@ -1,21 +1,25 @@
-module Player where
+module Player exposing (..)
 
-import Effects exposing (Effects, task)
+
 import Html exposing (..)
-import Html.Events exposing (onClick, on, targetChecked)
+import Html.Events exposing (onClick, on, onCheck)
 import Html.Attributes exposing (type', checked)
+import Html.App as Html
 import Http exposing (..)
 import Task exposing (..)
 import List exposing (..)
 import Maybe exposing (..)
 import String exposing (..)
 import Result exposing (Result, formatError)
-import Signal exposing (Address)
 import Melody exposing (..)
 import AbcPerformance exposing (..)
 import Repeats exposing (Repeats, Section, buildRepeatedMelody)
 import Abc.ParseTree exposing (..)
 import Abc exposing (parse, parseError)
+
+main =
+  Html.program
+    { init = (init, Cmd.none), update = update, view = view, subscriptions = \_ -> Sub.none }
 
 -- MODEL
 
@@ -24,28 +28,26 @@ type alias Model =
     , expandRepeats : Bool
     }
 
-init : String -> (Model, Effects Action)
-init topic =
-  ( { performance = Err "not started", expandRepeats = False  }
-  , Effects.none
-  )
+init : Model
+init =
+  { performance = Err "not started", expandRepeats = False  }
 
 -- UPDATE
 
-type Action
+type Msg
     = NoOp
     | ExpandRepeats Bool
     | Load String
     | Abc (Result String (MelodyLine, Repeats) )
 
-update : Action -> Model -> (Model, Effects Action)
-update action model =
-  case action of
-    NoOp -> (model, Effects.none )
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model =
+  case msg of
+    NoOp -> (model, Cmd.none )
 
-    ExpandRepeats b -> ( { model | expandRepeats = b}, Effects.none )
+    ExpandRepeats b -> ( { model | expandRepeats = b}, Cmd.none )
 
-    Abc result ->  ( { model | performance = result }, Effects.none ) 
+    Abc result ->  ( { model | performance = result }, Cmd.none ) 
 
     Load url -> (model, loadAbc url model.expandRepeats) 
 
@@ -58,7 +60,7 @@ mToList m = case m of
 
 
 {- load an ABC file -}
-loadAbc : String -> Bool -> Effects Action
+loadAbc : String -> Bool -> Cmd Msg
 loadAbc url expandRepeats = 
       let settings =  { defaultSettings | desiredResponseType  = Just "text/plain; charset=utf-8" }   
         in
@@ -71,8 +73,7 @@ loadAbc url expandRepeats =
           |> Task.toResult
           |> Task.map extractResponse
           |> Task.map (parseLoadedFile expandRepeats)
-          |> Task.map Abc
-          |> Effects.task
+          |> Task.perform (\_ -> NoOp) Abc
 
 {- extract the true response, concentrating on 200 statuses - assume other statuses are in error
    (usually 404 not found)
@@ -120,44 +121,30 @@ viewPerformanceResult mr = case mr of
       Err errs -> "Fail: " ++ (toString errs)
 
 
-view : Signal.Address Action -> Model -> Html
-view address model =
+view : Model -> Html Msg
+view model =
   div []
-    [ button [ onClick address (Load "abc/lillasystern.abc") ] [ text "lillasystern" ]
-    , button [ onClick address (Load "abc/PolskaRattvik.abc") ] [ text "Rattvik polska" ]
-    , button [ onClick address (Load "abc/justnotes.abc") ] [ text "just notes" ]
-    , button [ onClick address (Load "abc/twobars.abc") ] [ text "two bars" ]
-    , button [ onClick address (Load "abc/baraccidental.abc") ] [ text "bar accidental" ]
-    , button [ onClick address (Load "abc/tie.abc") ] [ text "tie" ]
-    , button [ onClick address (Load "abc/chord.abc") ] [ text "chord" ]
-    , button [ onClick address (Load "abc/variantending.abc") ] [ text "variant ending" ]
-    , button [ onClick address (Load "abc/repeat1.abc") ] [ text "repeat 1" ]
-    , button [ onClick address (Load "abc/repeat2.abc") ] [ text "repeat 2" ]
-    , button [ onClick address (Load "abc/repeat3.abc") ] [ text "repeat 3" ]
-    , button [ onClick address (Load "abc/repeat4.abc") ] [ text "repeat 4" ]
-    , button [ onClick address (Load "abc/repeat5.abc") ] [ text "repeat 5" ]
-    , button [ onClick address (Load "abc/repeat6.abc") ] [ text "repeat 6" ]
-    , div [  ] (checkbox address model.expandRepeats ExpandRepeats "expand repeats")
+    [ button [ onClick (Load "abc/lillasystern.abc") ] [ text "lillasystern" ]
+    , button [ onClick (Load "abc/PolskaRattvik.abc") ] [ text "Rattvik polska" ]
+    , button [ onClick (Load "abc/justnotes.abc") ] [ text "just notes" ]
+    , button [ onClick (Load "abc/twobars.abc") ] [ text "two bars" ]
+    , button [ onClick (Load "abc/baraccidental.abc") ] [ text "bar accidental" ]
+    , button [ onClick (Load "abc/tie.abc") ] [ text "tie" ]
+    , button [ onClick (Load "abc/chord.abc") ] [ text "chord" ]
+    , button [ onClick (Load "abc/variantending.abc") ] [ text "variant ending" ]
+    , button [ onClick (Load "abc/repeat1.abc") ] [ text "repeat 1" ]
+    , button [ onClick (Load "abc/repeat2.abc") ] [ text "repeat 2" ]
+    , button [ onClick (Load "abc/repeat3.abc") ] [ text "repeat 3" ]
+    , button [ onClick (Load "abc/repeat4.abc") ] [ text "repeat 4" ]
+    , button [ onClick (Load "abc/repeat5.abc") ] [ text "repeat 5" ]
+    , button [ onClick (Load "abc/repeat6.abc") ] [ text "repeat 6" ]
+    , label []
+        [ br [] []
+        , input [ type' "checkbox", checked model.expandRepeats, onCheck ExpandRepeats ] []
+        , text "expand repeats"
+        ]
     , div [  ] [ text ("parse result: " ++ (viewPerformanceResult model.performance)) ]
     ]
 
-checkbox : Address Action -> Bool -> (Bool -> Action) -> String -> List Html
-checkbox address isChecked tag name =
-  [ input
-      [ type' "checkbox"
-      , checked isChecked
-      , on "change" targetChecked (Signal.message address << tag)
-      ]
-      []
-  , text name
-  , br [] []
-  ]
-
-
--- INPUTS
-
-
-signals : List (Signal Action)
-signals = []
 
 
