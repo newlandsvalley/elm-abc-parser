@@ -1,4 +1,4 @@
-module Player exposing (..)
+module MidiPlayer exposing (..)
 
 
 import Html exposing (..)
@@ -11,8 +11,8 @@ import List exposing (..)
 import Maybe exposing (..)
 import String exposing (..)
 import Result exposing (Result, formatError)
-import Melody exposing (..)
-import AbcPerformance exposing (..)
+import MidiMelody exposing (..)
+import MidiPerformance exposing (..)
 import Repeats exposing (buildRepeatedMelody)
 import RepeatTypes exposing (Repeats, Section)
 import Abc.ParseTree exposing (..)
@@ -25,13 +25,14 @@ main =
 -- MODEL
 
 type alias Model =
-    { performance : Result String (MelodyLine, Repeats) 
+    { performance : Result String (MidiMelody, Repeats) 
+    , url : Maybe String
     , expandRepeats : Bool
     }
 
 init : Model
 init =
-  { performance = Err "not started", expandRepeats = False  }
+  { performance = Err "not started", url = Nothing, expandRepeats = False  }
 
 -- UPDATE
 
@@ -39,18 +40,25 @@ type Msg
     = NoOp
     | ExpandRepeats Bool
     | Load String
-    | Abc (Result String (MelodyLine, Repeats) )
+    | Abc (Result String (MidiMelody, Repeats) )
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     NoOp -> (model, Cmd.none )
 
-    ExpandRepeats b -> ( { model | expandRepeats = b}, Cmd.none )
+    -- ExpandRepeats b -> ( { model | expandRepeats = b}, Cmd.none )
+    ExpandRepeats b -> 
+       let command =
+         case model.url of
+           Just url -> loadAbc url b
+           _ -> Cmd.none
+       in
+         ( { model | expandRepeats = b}, command )
 
     Abc result ->  ( { model | performance = result }, Cmd.none ) 
 
-    Load url -> (model, loadAbc url model.expandRepeats) 
+    Load url -> ( { model | url = Just url }, loadAbc url model.expandRepeats) 
 
    
 mToList : Maybe (List a) -> List a
@@ -94,12 +102,12 @@ extractResponse result =
 toInt : String -> Int
 toInt = String.toInt >> Result.toMaybe >> Maybe.withDefault 0
 
-toPerformance : Bool -> Result String AbcTune -> Result String (MelodyLine, Repeats)
+toPerformance : Bool -> Result String AbcTune -> Result String (MidiMelody, Repeats)
 toPerformance expandRepeats r = 
    Result.map (melodyFromAbc expandRepeats) r
 
 
-parseLoadedFile : Bool -> Result String Value -> Result String (MelodyLine, Repeats)
+parseLoadedFile : Bool -> Result String Value -> Result String (MidiMelody, Repeats)
 parseLoadedFile expandRepeats r = 
   case r of
     Ok text -> case text of
@@ -116,7 +124,7 @@ parseLoadedFile expandRepeats r =
 
 (=>) = (,)
 
-viewPerformanceResult : Result String (MelodyLine, Repeats) -> String
+viewPerformanceResult : Result String (MidiMelody, Repeats) -> String
 viewPerformanceResult mr = case mr of
       Ok (mel, rpts) -> "OK: " ++ (toString mel) ++ "\nRepeats: " ++ (toString rpts)
       Err errs -> "Fail: " ++ (toString errs)

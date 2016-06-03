@@ -5,8 +5,10 @@
     "license": "BSD3",
     "source-directories": [
         "../src",
+        "examples",
         "examples/parser",
         "examples/player",
+        "examples/midiplayer",
         "."
     ],
     "exposed-modules": [],

@@ -1,4 +1,4 @@
-module Player exposing (..)
+module MidiPlayer exposing (..)
 
 
 import Html exposing (..)
@@ -11,8 +11,9 @@ import List exposing (..)
 import Maybe exposing (..)
 import String exposing (..)
 import Result exposing (Result, formatError)
-import Melody exposing (..)
-import AbcPerformance exposing (..)
+import MidiMelody exposing (..)
+import MidiTypes exposing (MidiRecording)
+import MidiPerformance exposing (..)
 import Repeats exposing (buildRepeatedMelody)
 import RepeatTypes exposing (Repeats, Section)
 import Abc.ParseTree exposing (..)
@@ -25,32 +26,50 @@ main =
 -- MODEL
 
 type alias Model =
-    { performance : Result String (MelodyLine, Repeats) 
+    { abc : Result String AbcTune
+    , url : Maybe String
     , expandRepeats : Bool
+    , toMidiRecording : Bool
     }
 
 init : Model
 init =
-  { performance = Err "not started", expandRepeats = False  }
+  { abc = Err "not started", url = Nothing, expandRepeats = True, toMidiRecording = True  }
 
 -- UPDATE
 
 type Msg
     = NoOp
     | ExpandRepeats Bool
+    | MidiFormat Bool
     | Load String
-    | Abc (Result String (MelodyLine, Repeats) )
+    | Abc (Result String AbcTune)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     NoOp -> (model, Cmd.none )
 
-    ExpandRepeats b -> ( { model | expandRepeats = b}, Cmd.none )
+    ExpandRepeats b -> 
+       let command =
+         case model.url of
+           Just url -> loadAbc url
+           _ -> Cmd.none
+       in
+         ( { model | expandRepeats = b}, command )
 
-    Abc result ->  ( { model | performance = result }, Cmd.none ) 
+    MidiFormat b -> 
+       let command =
+         case model.url of
+           Just url -> loadAbc url
+           _ -> Cmd.none
+       in
+         ( { model | toMidiRecording = b}, command )
 
-    Load url -> (model, loadAbc url model.expandRepeats) 
+
+    Abc result ->  ( { model | abc = result }, Cmd.none ) 
+
+    Load url -> ( { model | url = Just url }, loadAbc url ) 
 
    
 mToList : Maybe (List a) -> List a
@@ -58,11 +77,9 @@ mToList m = case m of
    Nothing -> []
    Just x -> x
 
-
-
 {- load an ABC file -}
-loadAbc : String -> Bool -> Cmd Msg
-loadAbc url expandRepeats = 
+loadAbc : String -> Cmd Msg
+loadAbc url  = 
       let settings =  { defaultSettings | desiredResponseType  = Just "text/plain; charset=utf-8" }   
         in
           Http.send settings
@@ -73,7 +90,7 @@ loadAbc url expandRepeats =
                           } 
           |> Task.toResult
           |> Task.map extractResponse
-          |> Task.map (parseLoadedFile expandRepeats)
+          |> Task.map parseLoadedFile
           |> Task.perform (\_ -> NoOp) Abc
 
 {- extract the true response, concentrating on 200 statuses - assume other statuses are in error
@@ -94,20 +111,22 @@ extractResponse result =
 toInt : String -> Int
 toInt = String.toInt >> Result.toMaybe >> Maybe.withDefault 0
 
-toPerformance : Bool -> Result String AbcTune -> Result String (MelodyLine, Repeats)
+toPerformance : Bool -> Result String AbcTune -> Result String (MidiMelody, Repeats)
 toPerformance expandRepeats r = 
    Result.map (melodyFromAbc expandRepeats) r
 
+toMidiRecording : Bool -> Result String AbcTune -> Result String MidiRecording
+toMidiRecording expandRepeats r = 
+   Result.map (midiRecordingFromAbc expandRepeats) r
 
-parseLoadedFile : Bool -> Result String Value -> Result String (MelodyLine, Repeats)
-parseLoadedFile expandRepeats r = 
+parseLoadedFile : Result String Value -> Result String AbcTune
+parseLoadedFile r = 
   case r of
     Ok text -> case text of
       Text s -> 
         s 
          |> parse
          |> formatError parseError 
-         |> toPerformance expandRepeats
       Blob b -> 
         Err "Blob unsupported"
     Err e -> Err e
@@ -116,10 +135,28 @@ parseLoadedFile expandRepeats r =
 
 (=>) = (,)
 
-viewPerformanceResult : Result String (MelodyLine, Repeats) -> String
+viewPerformanceResult : Result String (MidiMelody, Repeats) -> String
 viewPerformanceResult mr = case mr of
       Ok (mel, rpts) -> "OK: " ++ (toString mel) ++ "\nRepeats: " ++ (toString rpts)
       Err errs -> "Fail: " ++ (toString errs)
+
+viewMidiRecordingResult : Result String MidiRecording -> String
+viewMidiRecordingResult mr = case mr of
+      Ok recording -> 
+        let
+          (header, tracks) = recording
+          track0 = List.head tracks
+                    |> withDefault []
+        in
+          "OK: " ++ "header: " ++ (toString header) ++ " track0: " ++ (toString track0)
+      Err errs -> "Fail: " ++ (toString errs)
+
+result : Model -> String
+result model =
+  if model.toMidiRecording then
+    viewMidiRecordingResult (toMidiRecording model.expandRepeats model.abc)
+  else
+    viewPerformanceResult (toPerformance model.expandRepeats model.abc)
 
 
 view : Model -> Html Msg
@@ -144,7 +181,12 @@ view model =
         , input [ type' "checkbox", checked model.expandRepeats, onCheck ExpandRepeats ] []
         , text "expand repeats"
         ]
-    , div [  ] [ text ("parse result: " ++ (viewPerformanceResult model.performance)) ]
+    , label []
+        [ br [] []
+        , input [ type' "checkbox", checked model.toMidiRecording, onCheck MidiFormat ] []
+        , text "to midi recording"
+        ]
+    , div [  ] [ text ("parse result: " ++ (result model)) ]
     ]
 
 
