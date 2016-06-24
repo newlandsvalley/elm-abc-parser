@@ -125,9 +125,9 @@ slur = rec <| \() ->
              <?> "slur"
 -}
 
-
+-- spec is unclear if spaces are allowed after a broken rhythm operator but it's easy to support, is more permissive and doesn't break anything
 brokenRhythmTie : Parser Broken
-brokenRhythmTie  = buildBrokenOperator <$> regex "(<+|>+)"
+brokenRhythmTie  = buildBrokenOperator <$> regex "(<+|>+)" <* whiteSpace
 
 brokenRhythmPair : Parser Music
 brokenRhythmPair = BrokenRhythmPair <$> abcNote <*> brokenRhythmTie <*> abcNote

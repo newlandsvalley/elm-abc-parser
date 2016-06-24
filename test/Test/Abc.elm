@@ -137,6 +137,7 @@ tests =
         , test "right fractionalNote" (assertParses rightFractionalNote)
         , test "double fractionalNote" (assertParses doubleFractionalNote)
         , test "broken rhythm" (assertRoundTrip brokenRhythm)
+        , test "broken rhythm spaced" (assertCanonicalMatches brokenRhythmSpaced brokenRhythmSpacedCanonical)
         , test "accidentals" (assertRoundTrip accidentals)
         , test "octave" (assertRoundTrip octave)
         , test "tie" (assertRoundTrip tie)
@@ -226,6 +227,8 @@ leftFractionalNote = "| A3/ |\r\n"
 rightFractionalNote = "| A/3 |\r\n"
 doubleFractionalNote = "| A// |\r\n"
 brokenRhythm = "| A>B C>>D a<b c<<d |\r\n"
+brokenRhythmSpaced = "| A> B |\r\n"
+brokenRhythmSpacedCanonical = "| A>B |\r\n"
 accidentals = "| ^A_B c=d_e |\r\n"
 octave = "| A,B,,C z2 d'e''f z/ |\r\n"
 tie = "| A4~ A2 |\r\n"
