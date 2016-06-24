@@ -112,6 +112,7 @@ tests =
         , test "tempo" (assertRoundTrip tempo)
         , test "tempo with space" (assertParses tempoSpace)
         , test "complex tempo" (assertRoundTrip tempoComplex)
+        , test "tempo no note length" (assertCanonicalMatches tempoNoNoteLength tempoNoNoteLengthCanonical)
         , test "remark" (assertRoundTrip remark)
         , test "rhythm" (assertRoundTrip rhythm)
         , test "source" (assertRoundTrip source)
@@ -143,6 +144,7 @@ tests =
         , test "barline" (assertRoundTrip barline)
         , test "repeat" (assertRoundTrip repeat)
         , test "triplet" (assertRoundTrip triplet)
+        , test "tripletSpaced" (assertCanonicalMatches tripletSpaced tripletSpacedCanonical)
         , test "tuplet" (assertRoundTrip triplet)
         , test "slur" (assertRoundTrip slur)
         , test "grace notes" (assertRoundTrip grace)
@@ -232,6 +234,8 @@ barline = "[| ABC | def |]\r\n"
 repeat = "|: ABCD EFGa |1 D4 C4 :|2 c8 |\r\n"
 triplet = "| (3de^f (3cda |\r\n"
 tuplet = "| (3:2:4d2e2^fg |\r\n"
+tripletSpaced = "| (3 abc def |\r\n"
+tripletSpacedCanonical = "| (3abc def |\r\n"
 slur = "| (de^f) (cda) |\r\n"
 grace = "| {d^f}GA |\r\n"
 chordSymbols = "| \"Em\" EG \"Am\" AC |\r\n"
@@ -263,6 +267,8 @@ notes = "N: from recording made at Tideswell\r\n| ABC |\r\n"
 origin = "O: Skåne\r\n| ABC |\r\n"
 parts = "P: ((AB)3.(CD)3)2\r\n| ABC |\r\n"
 tempo = "Q: 1/4=120\r\n| ABC |\r\n"
+tempoNoNoteLength = "Q: 70\r\n| ABC |\r\n"                 -- this degenerate form...
+tempoNoNoteLengthCanonical = "Q: 1/4=70\r\n| ABC |\r\n"    -- should expand to this in canonical
 tempoSpace = "Q: 1/8=80 \r\n| ABC |\r\n"
 tempoComplex = "Q: 1/4 3/8 1/4 3/8=40 \"allegro\"\r\n| ABC |\r\n"
 remark = "r: this is a remark\r\n| ABC |\r\n"

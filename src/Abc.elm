@@ -753,10 +753,12 @@ tuplet = Tuplet <$> (char '(' *> tupletSignature) <*> many1 abcNote
    (3::           --> {3,2,3}
    (3:2:4         --> {3,2,4}
    (3::2          --> {3,2,2}
+
+   note, space is allowed after the tuplet signature but before the notes in the tuplet
 -}
 tupletSignature : Parser TupletSignature
 tupletSignature = buildTupletSignature <$> 
-   regex "[2-9]" <*> tup <*> tup
+   regex "[2-9]" <*> tup <*> tup <* whiteSpace
 
 tup : Parser (Maybe String)
 tup = join <$> maybe 
@@ -773,12 +775,6 @@ invert r =
     divide unit r
     
 
--- build a rationalal quantity - "x/y" -> Rational x y
-{-
-buildRational : Int -> Char -> Int -> MeterSignature
-buildRational x slash y = x `over` y
--}
-
 {- used in counting slashes exponentially -}
 buildRationalFromExponential : Int -> Rational
 buildRationalFromExponential i =
@@ -787,12 +783,18 @@ buildRationalFromExponential i =
 -- build a tempo signature
 buildTempoSignature : Maybe String -> List Rational -> Maybe Char -> Int -> Maybe String -> TempoSignature
 buildTempoSignature ms1 fs c i ms2 =
-   let ms = 
-      case ms1 of
-        Nothing -> ms2
-        _ -> ms1
+   let 
+     ms = 
+       case ms1 of
+         Nothing -> ms2
+         _ -> ms1
+     noteLengths =
+       if (List.isEmpty fs) then  -- cover the degenerate case of 'Q: 120' which means 'Q: 1/4=120'
+         [ Ratio.over 1 4]
+       else
+         fs  
    in
-    { noteLengths = fs
+    { noteLengths = noteLengths
     , bpm = i
     , marking = ms
     }

@@ -29,9 +29,40 @@ Sections of the spec marked as 'volatile' are treated as being non-normative.  T
 Implementation Notes
 --------------------
 
-Slurs are not implemented in a way that I like (where you recognize the left bracket, then the slurred notes and finally the right bracket; thus balancing the brackets).  This seems to be a limitation in the spec - this is written in a line-oriented fashion, where lines of notes may possibly be interrupted by in-line headers. However, in the wild (and perhaps the spec - it's unclear) slurs may occur across lines.  This means that all that can be easily recognised is the individual brackets '(' and ') that frame   the slur and which are now disconnected from each other in any meaningful sense.
+#### Slurs
 
+Slurs are not implemented in a way that I like (where you recognize the left bracket, then the slurred notes and finally the right bracket; thus balancing the brackets).  This seems to be a limitation in the spec which is written in a line-oriented fashion, where lines of notes may possibly be interrupted by in-line headers. However, in the wild (and perhaps the spec - it's unclear) slurs may occur across lines.  This means that all that can be easily recognised is the individual brackets '(' and ') that frame   the slur and which are now disconnected from each other in any meaningful sense.  This means also that the parser will reject contructions like this:
+
+    A(Bc)- cd
+    
+#### Ties
+
+It is clear from the specification that ties must be associated with the left-hand note of the pair and that there may be a space before the right-hand note.  i.e. this is legal:
+   
+    ABc- cd
+    
+whereas this is not (and will be rejected by the parser):
+
+    ABc -cd
+    
+It is not clear from the specification whether or not chords can be tied. This parser rejects them - for example:
+
+    AB [ce]- [cg]
+    
+#### Bar Lines
+    
 Bar lines are specified very badly and the parser tries to make the best of a bad job.
+
+To Do:
+------
+
+The following construction (indicating repeated sections one and two) is legal but is currently rejected by the parser (because of potential ambiguity with inline headers):
+
+    faf gfe|[1 dfe dBA:|[2 d2e dcB|]
+    
+instead, use:
+
+    faf gfe[|1 dfe dBA:[|2 d2e dcB|]
 
 
  
