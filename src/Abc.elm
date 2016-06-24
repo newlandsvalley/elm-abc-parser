@@ -88,8 +88,13 @@ scoreItem = rec <| \() ->
    any shape, using a sequence of | (thin bar line), [| or |] (thick bar line), and : (dots), e.g. |[| or [|::: 
 -}
 barline : Parser Music
+barline = buildBarline <$> barSeparator <*> maybe repeatSection
+            <?> "barline"
+
+{-
 barline = buildBarline <$> barSeparator <*> maybe Combine.Num.digit
              <?> "barline"
+-}
 
 {- written like this instead of a regex because it's all regex control character! -}
 barSeparator : Parser String
@@ -103,7 +108,24 @@ barSeparator =
         , string "|"
         , string ":"
         ]
-    )       
+    )     
+  
+{- a repeat section at the start of a bar.  We have just parsed a bar marker (say |) and so the combination of this and the repeat may be:
+      |1
+      |[1
+      | [1
+   but is not allowed to be
+      | 1
+
+   associating the digit with the bracket bar number should remove ambiguity with respect to other productions that use the bracket
+   (in particular, inline headers and chords).
+-}
+repeatSection : Parser Int
+repeatSection =
+  choice
+    [ Combine.Num.digit
+    , whiteSpace *> char '[' *> Combine.Num.digit
+    ]
 
 slur : Parser Music
 slur = Slur <$> choice [char '(', char ')']

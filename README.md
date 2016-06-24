@@ -53,16 +53,7 @@ It is not clear from the specification whether or not chords can be tied. This p
     
 Bar lines are specified very badly and the parser tries to make the best of a bad job.
 
-To Do:
-------
 
-The following construction (indicating repeated sections one and two) is legal but is currently rejected by the parser (because of potential ambiguity with inline headers):
-
-    faf gfe|[1 dfe dBA:|[2 d2e dcB|]
-    
-instead, use:
-
-    faf gfe[|1 dfe dBA:[|2 d2e dcB|]
 
 
  
