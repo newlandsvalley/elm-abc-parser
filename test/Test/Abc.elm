@@ -110,6 +110,7 @@ tests =
         , test "origin" (assertRoundTrip origin)
         , test "parts" (assertRoundTrip parts)
         , test "tempo" (assertRoundTrip tempo)
+        , test "tempo with space" (assertParses tempoSpace)
         , test "complex tempo" (assertRoundTrip tempoComplex)
         , test "remark" (assertRoundTrip remark)
         , test "rhythm" (assertRoundTrip rhythm)
@@ -129,6 +130,7 @@ tests =
     tune =
       suite "tune"
         [ test "note" (assertRoundTrip note)
+        , test "long note" (assertRoundTrip longNote)
         , test "fractionalNote" (assertParses fractionalNote)
         , test "left fractionalNote" (assertParses leftFractionalNote)
         , test "right fractionalNote" (assertParses rightFractionalNote)
@@ -216,6 +218,7 @@ singletest =
 
 -- music
 note = "| ABC z2 def z/ |\r\n"
+longNote = "| ABC d12 |\r\n"
 fractionalNote = "| A/2 B3/2 c/ |\r\n"
 leftFractionalNote = "| A3/ |\r\n"
 rightFractionalNote = "| A/3 |\r\n"
@@ -260,6 +263,7 @@ notes = "N: from recording made at Tideswell\r\n| ABC |\r\n"
 origin = "O: Skåne\r\n| ABC |\r\n"
 parts = "P: ((AB)3.(CD)3)2\r\n| ABC |\r\n"
 tempo = "Q: 1/4=120\r\n| ABC |\r\n"
+tempoSpace = "Q: 1/8=80 \r\n| ABC |\r\n"
 tempoComplex = "Q: 1/4 3/8 1/4 3/8=40 \"allegro\"\r\n| ABC |\r\n"
 remark = "r: this is a remark\r\n| ABC |\r\n"
 rhythm = "R: Polska\r\n| ABC |\r\n"

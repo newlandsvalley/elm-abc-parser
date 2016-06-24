@@ -266,7 +266,7 @@ noteDuration = rational <* whiteSpace
    120  (which means 1/4=120)
 -}
 tempoSignature : Parser TempoSignature
-tempoSignature = buildTempoSignature <$> maybe spacedQuotedString <*> many headerRational <*> maybe (char '=') <*> int <*> maybe spacedQuotedString
+tempoSignature = buildTempoSignature <$> maybe spacedQuotedString <*> many headerRational <*> maybe (char '=') <*> int <*> maybe spacedQuotedString <* whiteSpace
 
 -- accidental in a key signature (these use a different representation from accidentals in the tune body)
 sharpOrFlat : Parser Accidental
@@ -741,7 +741,7 @@ maybeTie = (maybe (char '-'))
 
 integralAsRational : Parser Rational
 integralAsRational =
-   Ratio.fromInt <$> Combine.Num.digit
+   Ratio.fromInt <$> int
 
 tuplet : Parser Music
 tuplet = Tuplet <$> (char '(' *> tupletSignature) <*> many1 abcNote
