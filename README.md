@@ -53,7 +53,17 @@ It is not clear from the specification whether or not chords can be tied. This p
     
 Bar lines are specified very badly and the parser tries to make the best of a bad job.
 
+#### Repeat Sections
 
+Only simple repeat markings are supported - for example:
+
+    |1 ABcd |
+    [2 efga |
+    
+Complex repeats of the following form are not supported:
+
+    [1,3 ABCd :|
+    [1,3,5-7  ABcd  :| [2,4,8 efga :|
 
 
  
