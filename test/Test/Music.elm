@@ -2,8 +2,9 @@ module Test.Music exposing
   (tests) 
 
 import ElmTest exposing (..)
+import Abc exposing (parse)
 import Music.Notation exposing (..)
-import Abc.ParseTree exposing (PitchClass(..), KeySignature, Accidental(..), KeyAccidental, Mode(..), AbcNote)
+import Abc.ParseTree exposing (PitchClass(..), KeySignature, ModifiedKeySignature, Accidental(..), KeyAccidental, Mode(..), AbcNote, AbcTune)
 import Ratio exposing (Rational, over, fromInt)
 
 import String
@@ -32,6 +33,9 @@ dMajor = { pitchClass = D, accidental = Nothing, mode = Major }
 
 fMajor : KeySignature
 fMajor = { pitchClass = F, accidental = Nothing, mode = Major }
+
+fMajorM : ModifiedKeySignature
+fMajorM = (fMajor,[])
 
 tests : Test
 tests =
@@ -185,7 +189,16 @@ tests =
         , test "Gm is not a sharp key" (assert 
                  (not (isCOrSharpKey gMinor))
                )
-        ]   
+        ]     
+    headers =
+      suite "headers"
+        [ -- tests for getTitle
+          test "OK Title header" (assertOkTitle titledTune "Gamal Reinlender")
+        , test "No Title header" (assertNoHeader keyedTune getTitle)
+          -- tests for getKeySig
+        , test "OK key header" (assertOkKeySig keyedTune fMajorM)
+        , test "No Key header" (assertNoHeader titledTune getKeySig)
+        ]
     in
       suite "Music Notation"
         [ majorMode
@@ -194,6 +207,72 @@ tests =
         , otherModes
         , lookups
         , keys
+        , headers
         ]
+
+-- headers in sample ABC tunes
+keyedTune = "K: FMajor\r\n| ABC |\r\n"
+titledTune = "T: Gamal Reinlender\r\n| ABC |\r\n"
+
+{- assert there is no header in the tune as defined by the getf (get header) function -}
+assertNoHeader : String -> (AbcTune -> Maybe h) -> Assertion
+assertNoHeader source getf =
+  let 
+    parseResult = parse source
+  in
+    case parseResult of
+      Ok tune ->
+        let
+          mtitle = getf tune
+        in
+          case mtitle of
+            Just title ->
+              assert False
+            _ ->
+            assert True
+      _ -> 
+        assert False
+
+
+{- assert there is a title in the tune and it equals the target-}
+assertOkTitle : String -> String -> Assertion
+assertOkTitle source target = 
+  let 
+    parseResult = parse source
+  in
+    case parseResult of
+      Ok tune ->
+        let
+          mtitle = getTitle tune
+        in
+          case mtitle of
+            Just title -> 
+              assertEqual target title
+            _ ->
+            assert False
+      _ -> 
+        assert False
+
+{- assert there is a key signature in the tune and it equals the target-}
+assertOkKeySig : String -> ModifiedKeySignature -> Assertion
+assertOkKeySig source target = 
+  let 
+    parseResult = parse source
+  in
+    case parseResult of
+      Ok tune ->
+        let
+          mkeySig = getKeySig tune
+        in
+          case mkeySig of
+            Just keySig -> 
+              assertEqual target keySig
+            _ ->
+            assert False
+      _ -> 
+        assert False
+
+
+
 
 
