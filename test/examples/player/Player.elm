@@ -139,6 +139,7 @@ view model =
     , button [ onClick (Load "abc/repeat4.abc") ] [ text "repeat 4" ]
     , button [ onClick (Load "abc/repeat5.abc") ] [ text "repeat 5" ]
     , button [ onClick (Load "abc/repeat6.abc") ] [ text "repeat 6" ]
+    , button [ onClick (Load "abc/tripletaccidental.abc") ] [ text "triplet accidental" ]
     , label []
         [ br [] []
         , input [ type' "checkbox", checked model.expandRepeats, onCheck ExpandRepeats ] []
