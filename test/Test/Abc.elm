@@ -146,6 +146,7 @@ tests =
         , test "repeat" (assertRoundTrip repeat)
         , test "repeat with [" (assertCanonicalMatches repeat1 repeat)
         , test "repeat with spaced [" (assertCanonicalMatches repeat2 repeat)
+        , test "degenerateRepeat" (assertCanonicalMatches degenerateRepeat degenerateRepeatCanonical)
         , test "triplet" (assertRoundTrip triplet)
         , test "tripletSpaced" (assertCanonicalMatches tripletSpaced tripletSpacedCanonical)
         , test "tuplet" (assertRoundTrip triplet)
@@ -239,6 +240,8 @@ barline = "[| ABC | def |]\r\n"
 repeat = "|: ABCD EFGa |1 D4 C4 :|2 c8 |\r\n"
 repeat1 = "|: ABCD EFGa |[1 D4 C4 :|[2 c8 |\r\n"
 repeat2 = "|: ABCD EFGa | [1 D4 C4 :| [2 c8 |\r\n"
+degenerateRepeat = "[1 ABCD |\r\n"
+degenerateRepeatCanonical = "|1 ABCD |\r\n"
 triplet = "| (3de^f (3cda |\r\n"
 tuplet = "| (3:2:4d2e2^fg |\r\n"
 tripletSpaced = "| (3 abc def |\r\n"
