@@ -2,11 +2,10 @@ elm-stuff
 elm.js
 Main.html
 index.html
-/test/elm-stuff/
-/test/Main.html
-/test/index.html
-/test/Main.html
-/test/compilep.sh
-/test/compilemp.sh
-/test/temp/
+/projects/elm-stuff/
+/projects/Main.html
+/projects/index.html
+/projects/Main.html
+/projects/compilep.sh
+/projects/compilemp.sh
 /deprecated/

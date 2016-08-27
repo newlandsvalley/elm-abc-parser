@@ -1,7 +1,8 @@
 module Test.Octave exposing 
   (tests)
 
-import ElmTest exposing (..)
+import Test exposing (..)
+import Expect exposing (..)
 import Music.Octave exposing (..)
 import Abc exposing (parse, parseError)
 import Abc.ParseTree exposing (AbcTune)
@@ -11,7 +12,7 @@ import Result exposing (..)
 import Debug exposing (..)
 
 {- assert the moved parsed input equals the target -}
-assertMoveMatches : String -> (AbcTune -> AbcTune) -> String -> Assertion
+assertMoveMatches : String -> (AbcTune -> AbcTune) -> String -> Expectation
 assertMoveMatches s move target = 
   let 
     movedResult = formatError (\x -> "parse error: " ++ toString x) (parse s)
@@ -19,66 +20,63 @@ assertMoveMatches s move target =
   in
     case movedResult  of
       Ok res -> 
-        assertEqual target (fromTune res)
+        Expect.equal target (fromTune res)
       Err errs -> 
-        let 
-           _ = log "unexpected error" errs
-        in
-          assert False
+        Expect.fail "unexpected error"
 
 tests : Test
 tests =
-  let 
-    phrases =
-      suite "phrases"
-        [ 
-          test "phrase 1 low to med" (assertMoveMatches 
+  describe "Octave Change"
+    [ 
+      test "phrase 1 low to med" <|
+        \() -> (assertMoveMatches 
                phrase1Low
                up
                phrase1Med
                )          
-        , test "phrase 1 med to high" (assertMoveMatches 
+    , test "phrase 1 med to high" <|
+        \() -> (assertMoveMatches 
                phrase1Med
                up
                phrase1High
                )         
-        , test "phrase 1 med to low" (assertMoveMatches 
+    , test "phrase 1 med to low" <|
+        \() -> (assertMoveMatches 
                phrase1Med
                down
                phrase1Low
                )          
-        , test "phrase 1 high to Med" (assertMoveMatches 
+    , test "phrase 1 high to Med" <|
+        \() -> (assertMoveMatches 
                phrase1High
                down
                phrase1Med
                )      
-        , test "phrase 2 low to med" (assertMoveMatches 
+    , test "phrase 2 low to med" <|
+        \() -> (assertMoveMatches 
                phrase2Low
                up
                phrase2Med
                )                  
-        , test "phrase 2 med to high" (assertMoveMatches 
+    , test "phrase 2 med to high" <|
+        \() -> (assertMoveMatches 
                phrase2Med
                up
                phrase2High
                )               
-        , test "phrase 2 med to low" (assertMoveMatches 
+    , test "phrase 2 med to low" <|
+        \() -> (assertMoveMatches 
                phrase2Med
                down
                phrase2Low
                )          
-        , test "phrase 2 high to Med" (assertMoveMatches 
+    , test "phrase 2 high to Med" <|
+        \() -> (assertMoveMatches 
                phrase2High
                down
                phrase2Med
                )      
- 
-        ]
-    in
-      suite "Octave Change"
-        [
-          phrases
-        ]
+      ]
 
 phrase1Low  = "K: CMajor\r\n| A,B, (3CDE [FG] |\r\n"
 phrase1Med  = "K: CMajor\r\n| AB (3cde [fg] |\r\n"

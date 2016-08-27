@@ -1,7 +1,8 @@
 module Test.Transposition exposing
   (tests, singletest)
 
-import ElmTest exposing (..)
+import Test exposing (..)
+import Expect exposing (..)
 import Music.Transposition exposing (..)
 import Abc exposing (parse, parseError)
 import Abc.ParseTree exposing (PitchClass(..), KeySignature, ModifiedKeySignature, Accidental(..), Mode(..), AbcNote)
@@ -12,7 +13,7 @@ import Ratio exposing (Rational, over, fromInt)
 import Debug exposing (..)
 
 {- assert the transposed parsed input equals the target -}
-assertTranspositionMatches : String -> ModifiedKeySignature -> String -> Assertion
+assertTranspositionMatches : String -> ModifiedKeySignature -> String -> Expectation
 assertTranspositionMatches s targetks target = 
   let 
     transposedResult = formatError (\x -> "parse error: " ++ toString x) (parse s)
@@ -20,167 +21,165 @@ assertTranspositionMatches s targetks target =
   in
     case transposedResult  of
       Ok res -> 
-        assertEqual target (fromTune res)
+        Expect.equal target (fromTune res)
       Err errs -> 
         let 
            _ = log "unexpected error" errs
         in
-          assert False
+          Expect.fail "unexpected transposition error"
 
 
 tests : Test
 tests =
   let 
-
     keys =
-      suite "keys"
-        [ test "C to G#" (assertEqual
-               (Ok 8)
-               (keyDistance gSharpMajor cMajor)
-               )
-        , test "G# to Bb" (assertEqual
-               (Ok 2)
-               (keyDistance bFlat gSharpMajor)
-               )
-        , test "Bb to G#" (assertEqual
-               (Ok -2)
-               (keyDistance gSharpMajor bFlat)
-               )
-        , test "C to BbDor" (assertEqual
-               (Err "incompatible modes")
-               (keyDistance bFlatDorian cMajor)
-               )
+      describe "keys"
+        [ test "C to G#" <|
+           \() ->  Expect.equal
+                     (Ok 8)
+                     (keyDistance gSharpMajor cMajor)
+        , test "G# to Bb" <|
+           \() -> Expect.equal
+                   (Ok 2)
+                   (keyDistance bFlat gSharpMajor)
+        , test "Bb to G#" <|
+           \() -> Expect.equal
+                   (Ok -2)
+                   (keyDistance gSharpMajor bFlat)
+        , test "C to BbDor" <|
+           \() -> Expect.equal
+                   (Err "incompatible modes")
+                   (keyDistance bFlatDorian cMajor)               
         ]
     notes =
-      suite "notes"
-        [ test "F in FMaj to GMaj" (assertEqual
+      describe "notes"
+        [ test "F in FMaj to GMaj" <|
+           \() ->  Expect.equal
                (Ok g)
                (transposeNote gMajor fMajor f)
-               )
-        , test "FNat in GMaj to FMaj" (assertEqual
+        , test "FNat in GMaj to FMaj" <|
+           \() ->  Expect.equal
                (Ok eb)
                (transposeNote fMajor gMajor fnat)
-               )
-        , test "C# in AMaj to GMaj" (assertEqual
+        , test "C# in AMaj to GMaj" <|
+           \() ->  Expect.equal
                (Ok b)
                (transposeNote gMajor aMajor cs)
-               )       
-        , test "C# in GMaj to AMaj" (assertEqual
+        , test "C# in GMaj to AMaj" <|
+           \() ->  Expect.equal
                (Ok ds)
                (transposeNote aMajor gMajor cs)
-               )     
         -- should produce an explicit e natural because there is no e natural in the diatonic scale of FMin
-        , test "G# in Amin to FMin" (assertEqual
+        , test "G# in Amin to FMin" <|
+           \() ->  Expect.equal
                (Ok enat)
                (transposeNote fMinor aMinor gs)
-               )
-        , test "B in DMaj to CMaj" (assertEqual
+        , test "B in DMaj to CMaj" <|
+           \() ->  Expect.equal
                (Ok a)
                (transposeNote cMajor dMajor b)
-               )
         ]
     phrases =
-      suite "phrases"
+     describe "phrases"
         [ 
-          test "C phrase to D phrase" (assertTranspositionMatches 
-               cPhrase
-               dMajor
-               dPhrase
-               ) 
-        , test "D phrase to C phrase" (assertTranspositionMatches 
-               dPhrase
-               cMajor
-               cPhrase
-               )
-        , test "C phrase to F phrase" (assertTranspositionMatches 
+          test "C phrase to D phrase" <|
+            \() -> assertTranspositionMatches 
+                     cPhrase
+                     dMajor
+                     dPhrase                     
+        , test "D phrase to C phrase" <|
+            \() -> assertTranspositionMatches 
+                     dPhrase
+                     cMajor
+                     cPhrase
+        , test "C phrase to F phrase" <|
+            \() -> assertTranspositionMatches 
                cPhrase
                fMajor
                fPhrase
-               )
-        , test "Gm phrase to Dm phrase" (assertTranspositionMatches 
-               gmPhrase
-               dMinor
-               dmPhrase
-               ) 
-        , test "Gm phrase with in-bar accidental" (assertTranspositionMatches 
-               gmPhraseLocal
-               dMinor
-               dmPhrase
-               ) 
-        , test "Dm phrase to Gm phrase" (assertTranspositionMatches 
-               dmPhrase
-               gMinor
-               gmPhraseLocal
-               )  
-        , test "Bm phrase to Em phrase" (assertTranspositionMatches 
-               bmPhrase
-               eMinor
-               emPhrase
-               )   
-        , test "Am phrase to Fm phrase" (assertTranspositionMatches 
-               amPhrase
-               fMinor
-               fmPhrase
-               )        
-        , test "Am phrase to F#m phrase" (assertTranspositionMatches 
-               amPhrase0
-               fSharpMinor
-               fsharpmPhrase0
-               )  
-        , test "identity transposition" (assertTranspositionMatches 
-               dmPhrase
-               dMinor
-               dmPhrase
-               )  
-        , test "Cm phrase to Am phrase" (assertTranspositionMatches 
-               cmPhrase1
-               aMinor
-               amPhrase1High
-               )  
+        , test "Gm phrase to Dm phrase" <|
+            \() -> assertTranspositionMatches 
+                     gmPhrase
+                     dMinor
+                     dmPhrase
+        , test "Gm phrase with in-bar accidental" <|
+            \() -> assertTranspositionMatches 
+                     gmPhraseLocal
+                     dMinor
+                     dmPhrase
+        , test "Dm phrase to Gm phrase" <|
+            \() -> assertTranspositionMatches 
+                     dmPhrase
+                     gMinor
+                     gmPhraseLocal
+        , test "Bm phrase to Em phrase" <|
+            \() -> assertTranspositionMatches 
+                     bmPhrase
+                     eMinor
+                     emPhrase
+        , test "Am phrase to Fm phrase" <|
+            \() -> assertTranspositionMatches 
+                     amPhrase
+                     fMinor
+                     fmPhrase
+        , test "Am phrase to F#m phrase" <|
+            \() -> assertTranspositionMatches 
+                     amPhrase0
+                     fSharpMinor
+                     fsharpmPhrase0
+        , test "identity transposition" <|
+            \() -> assertTranspositionMatches 
+                     dmPhrase
+                     dMinor
+                     dmPhrase
+        , test "Cm phrase to Am phrase" <|
+            \() -> assertTranspositionMatches 
+                     cmPhrase1
+                     aMinor
+                     amPhrase1High
         ]
     keyChanges =  
-      suite "inline key changes"
+      describe "inline key changes"
         [
-          test "key change Bm to Am" (assertTranspositionMatches 
-                keyChangeBm 
-                aMinor
-                keyChangeAm
-                ) 
-        , test "key change Am to Bm" (assertTranspositionMatches 
-                keyChangeAm 
-                bMinor
-                keyChangeBm
-                )         
-        , test "key change Bm to Em" (assertTranspositionMatches 
-                keyChangeBm 
-                eMinor
-                keyChangeEmHigh
-                )   
-        , test "key change Em to Bm" (assertTranspositionMatches 
-                keyChangeEm 
-                bMinor
-                keyChangeBm
-                ) 
-        , test "key change Bm to C#m" (assertTranspositionMatches 
-                keyChangeBm 
-                cSharpMinor
-                keyChangeCSharpmHigh
-                )          
-        , test "key change C#m to Bm" (assertTranspositionMatches 
-                keyChangeCSharpm
-                bMinor
-                keyChangeBm 
-                )       
-        , test "key change Bm to Am inline" (assertTranspositionMatches 
-                keyChangeBmInline 
-                aMinor
-                keyChangeAmInline
-                ) 
+          test "key change Bm to Am" <|
+            \() -> assertTranspositionMatches 
+                     keyChangeBm 
+                     aMinor
+                     keyChangeAm
+        , test "key change Am to Bm" <|
+            \() -> assertTranspositionMatches 
+                     keyChangeAm 
+                     bMinor
+                     keyChangeBm
+        , test "key change Bm to Em" <|
+            \() -> assertTranspositionMatches 
+                     keyChangeBm 
+                     eMinor
+                     keyChangeEmHigh
+        , test "key change Em to Bm" <|
+            \() -> assertTranspositionMatches 
+                     keyChangeEm 
+                     bMinor
+                     keyChangeBm
+        , test "key change Bm to C#m" <|
+            \() -> assertTranspositionMatches 
+                     keyChangeBm 
+                     cSharpMinor
+                     keyChangeCSharpmHigh
+        , test "key change C#m to Bm" <|
+            \() -> assertTranspositionMatches 
+                     keyChangeCSharpm
+                     bMinor
+                     keyChangeBm 
+        , test "key change Bm to Am inline" <|
+            \() -> assertTranspositionMatches 
+                     keyChangeBmInline 
+                     aMinor
+                     keyChangeAmInline
         ]
     in
-      suite "Music Transposition"
+      concat
         [ 
-        {- -}
           keys
         , notes
         , phrases
@@ -190,21 +189,14 @@ tests =
 -- a simple wrapper for running a single test
 singletest : Test
 singletest =
-  let     
-    single =
-      suite "single test"
-        [ 
-          test "fm phrase to Am phrase" (assertTranspositionMatches 
-               fmPhrase1
-               aMinor
-               amPhrase1
-               )  
-        ]  
-  in
-    suite "just one test"
-     [ 
-       single
-     ] 
+  describe "single test"
+    [ 
+    test "fm phrase to Am phrase" <|
+        \() -> assertTranspositionMatches 
+                  fmPhrase1
+                  aMinor
+                  amPhrase1
+    ]  
 
 -- note C Sharp and D Sharp are in octave 5 all the other notes are in octave 4 
 cs : AbcNote
