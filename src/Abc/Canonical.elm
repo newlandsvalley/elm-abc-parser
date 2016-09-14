@@ -2,6 +2,7 @@ module Abc.Canonical
     exposing
         ( fromTune
         , fromResult
+        , abcNote
         )
 
 {-| Module for converting an ABC Tune parse tree to a canonical ABC string,
@@ -9,7 +10,7 @@ module Abc.Canonical
    # Definition
 
    # Functions
-   @docs fromTune, fromResult
+   @docs fromTune, fromResult, abcNote
 
 -}
 
@@ -252,6 +253,8 @@ pitch octave p =
         toLower (toString p)
 
 
+{-| pretty-print a note
+-}
 abcNote : AbcNote -> String
 abcNote a =
     let

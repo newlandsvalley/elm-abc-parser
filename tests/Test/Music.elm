@@ -19,7 +19,7 @@ expectEquivalentKeys actual expected =
         if (List.foldl f True actual) && (List.length actual == List.length expected) then
             Expect.pass
         else
-            Expect.fail "non-equivalent keys"
+            Expect.fail ("non-equivalent keys" ++ toString actual ++ toString expected)
 
 
 
@@ -322,6 +322,39 @@ tests =
                         )
                 , test "C Ionian" <|
                     \() -> Expect.equal 0 (List.length (keySet { pitchClass = C, accidental = Nothing, mode = Major }))
+                  -- need to replace these with fuzz tests
+                  -- normalise currently fails with flat keys
+                , test "normalise G Mix" <|
+                    \() ->
+                        let
+                            sourceKey =
+                                { pitchClass = G, accidental = Nothing, mode = Mixolydian }
+
+                            targetKey =
+                                normaliseModalKey sourceKey
+                        in
+                            expectEquivalentKeys (keySet sourceKey) (keySet targetKey)
+                , test "normalise D Mix" <|
+                    \() ->
+                        let
+                            sourceKey =
+                                { pitchClass = D, accidental = Nothing, mode = Mixolydian }
+
+                            targetKey =
+                                normaliseModalKey sourceKey
+                        in
+                            expectEquivalentKeys (keySet sourceKey) (keySet targetKey)
+                  -- FAILING TEST
+                , test "normalise Bb Dor" <|
+                    \() ->
+                        let
+                            sourceKey =
+                                { pitchClass = B, accidental = Just Flat, mode = Dorian }
+
+                            targetKey =
+                                normaliseModalKey sourceKey
+                        in
+                            expectEquivalentKeys (keySet sourceKey) (keySet targetKey)
                 ]
 
         lookups =

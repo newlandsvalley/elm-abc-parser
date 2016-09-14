@@ -27,6 +27,7 @@ module Music.Notation
         , noteDuration
         , chordalNoteDuration
         , transposeKeySignatureBy
+        , normaliseModalKey
         )
 
 {-| Helper functions for making more musical sense of the parse tree
@@ -58,6 +59,7 @@ module Music.Notation
     , noteDuration
     , chordalNoteDuration
     , transposeKeySignatureBy
+    , normaliseModalKey
 
 -}
 
@@ -738,6 +740,21 @@ equivalentEnharmonic k =
             k
 
 
+sharpScaleEquivalent : KeyAccidental -> KeyAccidental
+sharpScaleEquivalent ka =
+    case (snd ka) of
+        Flat ->
+            let
+                index =
+                    elemIndex ka flatScale
+                        |> withDefault 0
+            in
+                lookUpScale sharpScale index
+
+        _ ->
+            ka
+
+
 
 {- enharmonic equivalence of full key signatures - don't use bizarre minor flat keys when we have reasonable sharp ones
    and vice versa.  Check both Major and Monor key signatures.
@@ -858,8 +875,8 @@ partialSum l =
 -}
 
 
-lookUp : ChromaticScale -> Int -> KeyAccidental
-lookUp s i =
+lookUpScale : ChromaticScale -> Int -> KeyAccidental
+lookUpScale s i =
     let
         modi =
             i % notesInChromaticScale
@@ -892,7 +909,7 @@ majorScale target =
                 sharpScale
 
         f =
-            lookUp (rotateFrom target chromaticScale)
+            lookUpScale (rotateFrom target chromaticScale)
     in
         List.map f (partialSum majorIntervals)
 
@@ -939,9 +956,86 @@ modalScale target mode =
             (index + distance) % notesInChromaticScale
 
         majorKey =
-            lookUp sharpScale majorKeyIndex
+            lookUpScale sharpScale majorKeyIndex
     in
         majorScale (equivalentEnharmonic majorKey)
+
+
+{-| normalise a modal key signature to that of the equivalent major key
+
+  Maybe, once this is completed and tested, implement modalScale in terms of this
+
+  WARNING - currently fails with flat keys
+-}
+normaliseModalKey : KeySignature -> KeySignature
+normaliseModalKey ks =
+    let
+        distance =
+            case ks.mode of
+                -- the distance to move right round the major scale
+                Dorian ->
+                    10
+
+                Phrygian ->
+                    8
+
+                Lydian ->
+                    7
+
+                Mixolydian ->
+                    5
+
+                Aeolian ->
+                    3
+
+                Locrian ->
+                    1
+
+                _ ->
+                    0
+
+        sourceAccidental =
+            case ks.accidental of
+                Just Sharp ->
+                    Sharp
+
+                Just Flat ->
+                    Flat
+
+                _ ->
+                    Natural
+
+        sharpScaleKeyAcc =
+            sharpScaleEquivalent ( ks.pitchClass, sourceAccidental )
+
+        index =
+            elemIndex sharpScaleKeyAcc sharpScale
+                |> withDefault 0
+
+        majorKeyIndex =
+            (index + distance) % notesInChromaticScale
+
+        majorKeyAcc =
+            lookUpScale sharpScale majorKeyIndex
+
+        targetAccidental =
+            case (snd majorKeyAcc) of
+                Sharp ->
+                    Just Sharp
+
+                Flat ->
+                    Just Flat
+
+                _ ->
+                    Nothing
+    in
+        if (0 == distance) then
+            ks
+        else
+            { pitchClass = fst majorKeyAcc
+            , accidental = targetAccidental
+            , mode = Major
+            }
 
 
 
