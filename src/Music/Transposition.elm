@@ -271,10 +271,10 @@ transposeMusic state m =
             in
                 ( Tuplet ts ns1, s1 )
 
-        GraceNote b m ->
+        GraceNote b ns ->
             let
                 ( m1, s1 ) =
-                    transposeMusic state m
+                    transposeNoteList state ns
             in
                 ( GraceNote b m1, s1 )
 
@@ -284,13 +284,6 @@ transposeMusic state m =
                     transposeChord state c
             in
                 ( Chord tc, s1 )
-
-        NoteSequence ms ->
-            let
-                ( ms1, s1 ) =
-                    transposeMusicList state ms
-            in
-                ( NoteSequence ms1, s1 )
 
         -- we won't attempt to transpose chord symbols - just quietly drop them
         ChordSymbol s ->

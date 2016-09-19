@@ -285,7 +285,7 @@ graceNote =
 
 grace : Parser Music
 grace =
-    GraceNote <$> acciaccatura <*> choice [ noteSequence, chord ]
+    GraceNote <$> acciaccatura <*> (many1 abcNote)
 
 
 
@@ -320,15 +320,6 @@ longDecoration : Parser String
 longDecoration =
     between (char '!') (char '!') (regex "[^\x0D\n!]*")
         <?> "long decoration"
-
-
-
-{- just a sequence of Notes -}
-
-
-noteSequence : Parser Music
-noteSequence =
-    NoteSequence <$> many1 note
 
 
 

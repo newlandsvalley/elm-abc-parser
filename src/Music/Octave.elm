@@ -75,14 +75,11 @@ moveOctave i m =
         Tuplet ts ns ->
             Tuplet ts (moveNoteList i ns)
 
-        GraceNote b m ->
-            GraceNote b (moveOctave i m)
+        GraceNote b ns ->
+            GraceNote b (moveNoteList i ns)
 
         Chord c ->
             Chord (moveChord i c)
-
-        NoteSequence ms ->
-            NoteSequence (moveMusicList i ms)
 
         _ ->
             m

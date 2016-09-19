@@ -347,8 +347,8 @@ music m =
         Decoration s ->
             decorate s
 
-        GraceNote isAcciaccatura m ->
-            "{" ++ music m ++ "}"
+        GraceNote isAcciaccatura ns ->
+            "{" ++ notes ns ++ "}"
 
         Slur c ->
             String.fromChar c
@@ -364,9 +364,6 @@ music m =
 
         Inline h ->
             "[" ++ header h ++ "]"
-
-        NoteSequence ms ->
-            musics ms
 
         Spacer i ->
             " "

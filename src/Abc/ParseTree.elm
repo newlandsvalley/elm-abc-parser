@@ -139,14 +139,12 @@ type Music
     | Tuplet TupletSignature (List AbcNote)
     | Decoration String
     | Slur Char
-    | GraceNote Bool Music
+    | GraceNote Bool (List AbcNote)
       -- Music restricted to note sequences or chords
     | Annotation AnnotationPlacement String
     | ChordSymbol String
     | Chord AbcChord
     | Inline Header
-    | NoteSequence (List Music)
-      -- Music restricted to note sequences
     | Spacer Int
     | Ignore
     | Continuation
