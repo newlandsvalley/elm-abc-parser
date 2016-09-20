@@ -3,6 +3,8 @@ module Abc.Canonical
         ( fromTune
         , fromResult
         , abcNote
+        , abcChord
+        , tuplet
         )
 
 {-| Module for converting an ABC Tune parse tree to a canonical ABC string,
@@ -10,7 +12,7 @@ module Abc.Canonical
    # Definition
 
    # Functions
-   @docs fromTune, fromResult, abcNote
+   @docs fromTune, fromResult, abcNote, abcChord, tuplet
 
 -}
 
@@ -121,7 +123,8 @@ headerAccidental a =
         _ ->
             ""
 
-
+{- pretty print a tuplet
+-}
 tuplet : TupletSignature -> String
 tuplet t =
     let
@@ -276,7 +279,8 @@ abcNote a =
             ++ duration a.duration
             ++ tie
 
-
+{-| pretty-print a chord
+-}
 abcChord : AbcChord -> String
 abcChord a =
     "["
