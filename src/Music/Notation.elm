@@ -922,7 +922,15 @@ modalScale : KeyAccidental -> Mode -> DiatonicScale
 modalScale target mode =
     let
         distance =
-            modalDistance mode
+            case mode of
+                Minor ->
+                    3
+
+                Major ->
+                    0
+
+                _ ->
+                    modalDistance mode
 
         index =
             elemIndex target sharpScale
@@ -1033,7 +1041,10 @@ accToMacc acc =
 
 
 
-{- calculate the distance of the mode in semitones from Major (Ionian) -}
+{- calculate the distance of the mode in semitones from Major (Ionian)
+   we excluse the mainstream Major and Minor modes here because these
+   are usually treated as themselves
+-}
 
 
 modalDistance : Mode -> Int
@@ -1053,9 +1064,6 @@ modalDistance mode =
             5
 
         Aeolian ->
-            3
-
-        Minor ->
             3
 
         Locrian ->
