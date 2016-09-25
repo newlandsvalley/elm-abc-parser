@@ -1041,10 +1041,7 @@ accToMacc acc =
 
 
 
-{- calculate the distance of the mode in semitones from Major (Ionian)
-   we excluse the mainstream Major and Minor modes here because these
-   are usually treated as themselves
--}
+{- calculate the distance of the mode in semitones from Major (Ionian) -}
 
 
 modalDistance : Mode -> Int
@@ -1064,6 +1061,9 @@ modalDistance mode =
             5
 
         Aeolian ->
+            3
+
+        Minor ->
             3
 
         Locrian ->
