@@ -334,7 +334,11 @@ tests =
                                 normaliseModalKey sourceKey
                         in
                             expectEquivalentKeys (keySet sourceKey) (keySet targetKey)
-                , test "normalise D Mix" <|
+                ]
+
+        modeNormalisation =
+            describe "mode normalisation"
+                [ test "normalise D Mix" <|
                     \() ->
                         let
                             sourceKey =
@@ -343,8 +347,9 @@ tests =
                             targetKey =
                                 normaliseModalKey sourceKey
                         in
-                            expectEquivalentKeys (keySet sourceKey) (keySet targetKey)
-                  -- FAILING TEST
+                            Expect.equal
+                                { pitchClass = G, accidental = Nothing, mode = Major }
+                                targetKey
                 , test "normalise Bb Dor" <|
                     \() ->
                         let
@@ -354,7 +359,45 @@ tests =
                             targetKey =
                                 normaliseModalKey sourceKey
                         in
-                            expectEquivalentKeys (keySet sourceKey) (keySet targetKey)
+                            Expect.equal
+                                { pitchClass = A, accidental = Just Flat, mode = Major }
+                                targetKey
+                , test "normalise A Phr" <|
+                    \() ->
+                        let
+                            sourceKey =
+                                { pitchClass = A, accidental = Nothing, mode = Phrygian }
+
+                            targetKey =
+                                normaliseModalKey sourceKey
+                        in
+                            Expect.equal
+                                { pitchClass = F, accidental = Nothing, mode = Major }
+                                targetKey
+                , test "normalise Ab Lydian" <|
+                    \() ->
+                        let
+                            sourceKey =
+                                { pitchClass = A, accidental = Just Flat, mode = Lydian }
+
+                            targetKey =
+                                normaliseModalKey sourceKey
+                        in
+                            Expect.equal
+                                { pitchClass = E, accidental = Just Flat, mode = Major }
+                                targetKey
+                , test "normalise G# Loc" <|
+                    \() ->
+                        let
+                            sourceKey =
+                                { pitchClass = G, accidental = Just Sharp, mode = Locrian }
+
+                            targetKey =
+                                normaliseModalKey sourceKey
+                        in
+                            Expect.equal
+                                { pitchClass = A, accidental = Nothing, mode = Major }
+                                targetKey
                 ]
 
         lookups =
@@ -420,6 +463,7 @@ tests =
             , minorMode
             , klezmerMode
             , otherModes
+            , modeNormalisation
             , lookups
             , keys
             , headers

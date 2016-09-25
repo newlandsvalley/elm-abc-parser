@@ -922,31 +922,7 @@ modalScale : KeyAccidental -> Mode -> DiatonicScale
 modalScale target mode =
     let
         distance =
-            case mode of
-                -- the distance to move right round the major scale
-                Minor ->
-                    3
-
-                Dorian ->
-                    10
-
-                Phrygian ->
-                    8
-
-                Lydian ->
-                    7
-
-                Mixolydian ->
-                    5
-
-                Aeolian ->
-                    3
-
-                Locrian ->
-                    1
-
-                _ ->
-                    0
+            modalDistance mode
 
         index =
             elemIndex target sharpScale
@@ -965,69 +941,47 @@ modalScale target mode =
 
   Maybe, once this is completed and tested, implement modalScale in terms of this
 
-  WARNING - currently fails with flat keys
 -}
 normaliseModalKey : KeySignature -> KeySignature
 normaliseModalKey ks =
     let
         distance =
-            case ks.mode of
-                -- the distance to move right round the major scale
-                Dorian ->
-                    10
-
-                Phrygian ->
-                    8
-
-                Lydian ->
-                    7
-
-                Mixolydian ->
-                    5
-
-                Aeolian ->
-                    3
-
-                Locrian ->
-                    1
-
-                _ ->
-                    0
+            modalDistance ks.mode
 
         sourceAccidental =
+            maccToAcc ks.accidental
+
+        scale =
             case ks.accidental of
                 Just Sharp ->
-                    Sharp
+                    sharpScale
 
                 Just Flat ->
-                    Flat
+                    flatScale
 
                 _ ->
-                    Natural
+                    case ks.pitchClass of
+                        F ->
+                            flatScale
 
-        sharpScaleKeyAcc =
-            sharpScaleEquivalent ( ks.pitchClass, sourceAccidental )
+                        _ ->
+                            sharpScale
+
+        keyAccidental =
+            ( ks.pitchClass, sourceAccidental )
 
         index =
-            elemIndex sharpScaleKeyAcc sharpScale
+            elemIndex keyAccidental scale
                 |> withDefault 0
 
         majorKeyIndex =
             (index + distance) % notesInChromaticScale
 
         majorKeyAcc =
-            lookUpScale sharpScale majorKeyIndex
+            lookUpScale scale majorKeyIndex
 
         targetAccidental =
-            case (snd majorKeyAcc) of
-                Sharp ->
-                    Just Sharp
-
-                Flat ->
-                    Just Flat
-
-                _ ->
-                    Nothing
+            accToMacc (snd majorKeyAcc)
     in
         if (0 == distance) then
             ks
@@ -1036,6 +990,79 @@ normaliseModalKey ks =
             , accidental = targetAccidental
             , mode = Major
             }
+
+
+
+{- convert a Maybe Accidental (used in key signatures)
+   to an explict accidental (used in scales) where the
+   explict form uses Natural
+-}
+
+
+maccToAcc : Maybe Accidental -> Accidental
+maccToAcc macc =
+    case macc of
+        Just Sharp ->
+            Sharp
+
+        Just Flat ->
+            Flat
+
+        _ ->
+            Natural
+
+
+
+{- convert an explict accidental (used in scales)
+   to a Maybe Accidental (used in key signatures) where the
+   explict form uses Natural
+-}
+
+
+accToMacc : Accidental -> Maybe Accidental
+accToMacc acc =
+    case acc of
+        Sharp ->
+            Just Sharp
+
+        Flat ->
+            Just Flat
+
+        _ ->
+            Nothing
+
+
+
+{- calculate the distance of the mode in semitones from Major (Ionian) -}
+
+
+modalDistance : Mode -> Int
+modalDistance mode =
+    case mode of
+        -- the distance to move right round the major scale
+        Dorian ->
+            10
+
+        Phrygian ->
+            8
+
+        Lydian ->
+            7
+
+        Mixolydian ->
+            5
+
+        Aeolian ->
+            3
+
+        Minor ->
+            3
+
+        Locrian ->
+            1
+
+        _ ->
+            0
 
 
 
