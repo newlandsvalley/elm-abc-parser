@@ -279,6 +279,14 @@ tests =
                     \() -> (assertRoundTrip inlineKey)
                 , test "inlineComment" <|
                     \() -> (assertRoundTrip inlineComment)
+                , test "new tempo" <|
+                    \() -> (assertRoundTrip newTempo)
+                , test "new key" <|
+                    \() -> (assertRoundTrip newKey)
+                , test "new unit length" <|
+                    \() -> (assertRoundTrip newUnitLength)
+                , test "new part" <|
+                    \() -> (assertRoundTrip newPart)
                 ]
 
         badInput =
@@ -655,6 +663,22 @@ inlineBracket =
 
 inlineBracket1 =
     "| ABC def g3 |[L: 1/8] A3 A3 |\x0D\n"
+
+
+newKey =
+    "| ABc |\x0D\nK: F#Major\x0D\n| def |\x0D\n"
+
+
+newTempo =
+    "| ABc |\x0D\nM: 3/4\x0D\n| def |\x0D\n"
+
+
+newUnitLength =
+    "| ABc |\x0D\nL: 1/16\x0D\n| def |\x0D\n"
+
+
+newPart =
+    "| ABc |\x0D\nP: B\x0D\n| def |\x0D\n"
 
 
 

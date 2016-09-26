@@ -154,8 +154,11 @@ barSeparator =
                 choice
                     [ string "[|"
                     , string "|]"
+                    , string "|:"
+                    , string ":|"
+                    , string "::"
                     , string "|"
-                    , string ":"
+                      -- must be last otherwise it hides |:
                     ]
             )
 
@@ -312,6 +315,7 @@ decoration =
 
 shortDecoration : Parser String
 shortDecoration =
+    -- regex "[\\.~HLMOSTuv]"
     regex "[\\.~HLMOPSTuv]"
         <?> "short decoration"
 
