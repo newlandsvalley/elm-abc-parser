@@ -240,7 +240,9 @@ tests =
                 , test "repeat with spaced [" <|
                     \() -> (assertCanonicalMatches repeat2 repeat)
                 , test "repeat ::" <|
-                    \() -> (assertCanonicalMatches repeat3 repeat3Canonical)
+                    \() -> (assertCanonicalMatches repeat3 repeat3a)
+                , test "repeat :|:" <|
+                    \() -> (assertRoundTrip repeat3a)
                 , test "repeat |]:" <|
                     \() -> (assertRoundTrip repeat4)
                 , test "degenerateRepeat" <|
@@ -435,7 +437,7 @@ repeat3 =
     "|: ABCD EFGa :: c8 |\x0D\n"
 
 
-repeat3Canonical =
+repeat3a =
     "|: ABCD EFGa :|: c8 |\x0D\n"
 
 
