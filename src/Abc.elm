@@ -164,8 +164,11 @@ barSeparator =
                     , string ":||:"
                     , string ":|]"
                       -- must come before :| else it hides it
+                    , string ":||"
                     , string ":|"
                     , string "::"
+                    , string "||:"
+                      -- must come before || else it hides it
                     , string "||"
                     , string "|"
                       -- must be last otherwise it hides |:
