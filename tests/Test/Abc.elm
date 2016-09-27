@@ -103,7 +103,7 @@ assertCanonicalMatches s target =
                 Expect.equal target (fromTune res)
 
             Err errs ->
-                Expect.fail "canonical mismatch"
+                Expect.fail "canonical mismatch: parse error"
 
 
 
@@ -233,10 +233,16 @@ tests =
                     \() -> (assertRoundTrip barline)
                 , test "repeat" <|
                     \() -> (assertRoundTrip repeat)
-                , test "repeat with [" <|
+                , test "repeat with |[" <|
                     \() -> (assertCanonicalMatches repeat1 repeat)
+                , test "repeat with [|" <|
+                    \() -> (assertRoundTrip repeat1a)
                 , test "repeat with spaced [" <|
                     \() -> (assertCanonicalMatches repeat2 repeat)
+                , test "repeat ::" <|
+                    \() -> (assertCanonicalMatches repeat3 repeat3Canonical)
+                , test "repeat |]:" <|
+                    \() -> (assertRoundTrip repeat4)
                 , test "degenerateRepeat" <|
                     \() -> (assertCanonicalMatches degenerateRepeat degenerateRepeatCanonical)
                 , test "triplet" <|
@@ -417,8 +423,24 @@ repeat1 =
     "|: ABCD EFGa |[1 D4 C4 :|[2 c8 |\x0D\n"
 
 
+repeat1a =
+    "|: ABCD EFGa [|1 D4 C4 :[|2 c8 |]\x0D\n"
+
+
 repeat2 =
     "|: ABCD EFGa | [1 D4 C4 :| [2 c8 |\x0D\n"
+
+
+repeat3 =
+    "|: ABCD EFGa :: c8 |\x0D\n"
+
+
+repeat3Canonical =
+    "|: ABCD EFGa :|: c8 |\x0D\n"
+
+
+repeat4 =
+    "[|2 ABCD EFGa |]: c8 |\x0D\n"
 
 
 degenerateRepeat =
