@@ -231,6 +231,8 @@ tests =
                     \() -> (assertRoundTrip complextie)
                 , test "barline" <|
                     \() -> (assertRoundTrip barline)
+                , test "double barline" <|
+                    \() -> (assertRoundTrip barlineDoubled)
                 , test "repeat" <|
                     \() -> (assertRoundTrip repeat)
                 , test "repeat with |[" <|
@@ -243,6 +245,8 @@ tests =
                     \() -> (assertCanonicalMatches repeat3 repeat3a)
                 , test "repeat :|:" <|
                     \() -> (assertRoundTrip repeat3a)
+                , test "repeat :||:" <|
+                    \() -> (assertRoundTrip repeat3b)
                 , test "repeat |]:" <|
                     \() -> (assertRoundTrip repeat4)
                 , test "repeat :|]" <|
@@ -419,6 +423,10 @@ barline =
     "[| ABC | def |]\x0D\n"
 
 
+barlineDoubled =
+    "[| ABC || def |]\x0D\n"
+
+
 repeat =
     "|: ABCD EFGa |1 D4 C4 :|2 c8 |\x0D\n"
 
@@ -441,6 +449,10 @@ repeat3 =
 
 repeat3a =
     "|: ABCD EFGa :|: c8 |\x0D\n"
+
+
+repeat3b =
+    "|: ABCD EFGa :||: c8 |\x0D\n"
 
 
 repeat4 =
