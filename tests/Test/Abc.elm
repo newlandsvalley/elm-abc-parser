@@ -245,6 +245,8 @@ tests =
                     \() -> (assertRoundTrip repeat3a)
                 , test "repeat |]:" <|
                     \() -> (assertRoundTrip repeat4)
+                , test "repeat :|]" <|
+                    \() -> (assertRoundTrip repeat5)
                 , test "degenerateRepeat" <|
                     \() -> (assertCanonicalMatches degenerateRepeat degenerateRepeatCanonical)
                 , test "triplet" <|
@@ -443,6 +445,10 @@ repeat3a =
 
 repeat4 =
     "[|2 ABCD EFGa |]: c8 |\x0D\n"
+
+
+repeat5 =
+    "|: ABCD EFGa :|] c8 |\x0D\n"
 
 
 degenerateRepeat =
