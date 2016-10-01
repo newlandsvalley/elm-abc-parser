@@ -305,6 +305,10 @@ tests =
                     \() -> (assertRoundTrip newUnitLength)
                 , test "new part" <|
                     \() -> (assertRoundTrip newPart)
+                , test "continuation" <|
+                    \() -> (assertRoundTrip continuation)
+                , test "continuation with commment" <|
+                    \() -> (assertCanonicalMatches continuationWithComment continuation)
                 ]
 
         badInput =
@@ -733,6 +737,14 @@ newUnitLength =
 
 newPart =
     "| ABc |\x0D\nP: B\x0D\n| def |\x0D\n"
+
+
+continuation =
+    "| ABc |\\\x0D\n| def |\x0D\n"
+
+
+continuationWithComment =
+    "| ABc |\\ ignored comment\x0D\n| def |\x0D\n"
 
 
 
