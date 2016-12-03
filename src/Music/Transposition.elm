@@ -1,22 +1,25 @@
 module Music.Transposition
     exposing
-        ( keyDistance
+        ( defaultKey
+        , keyDistance
         , transposeNote
         , transposeTo
         )
 
-{-| Experimental Module for tune transposition
+{-| Tune transposition
 
-You can transpose a parsed ABC tune (in whatever key - perhaps in C) to (say) G# using:
+You can transpose an ABC tune (in whatever key - perhaps in C) to (say) G# using:
 
-    transposedResult = formatError (\_ -> "parse error") (parse source)
-        `andThen` (\tune -> transposeTo ({pitchClass = G, accidental = Just Sharp, mode = Major},[]) tune)
+    transposedResult = mapError (\_ -> "parse error") (parse source)
+        |> andThen (\tune -> transposeTo ({pitchClass = G, accidental = Just Sharp, mode = Major},[]) tune)
 
 
 The mode before and after transposition must be identical (that is: you cannot transpose minor to major and so on).
 Chord symbols will be lost on transposition.
 
-# Definition
+# Constants
+@docs defaultKey
+
 
 # Functions
 @docs keyDistance
@@ -35,8 +38,9 @@ Chord symbols will be lost on transposition.
 -}
 
 import Dict exposing (Dict, fromList, get)
-import Maybe exposing (withDefault, oneOf)
-import Maybe.Extra exposing (isJust)
+import Maybe exposing (withDefault)
+import Maybe.Extra exposing (isJust, or)
+import Tuple exposing (first, second)
 import Abc.ParseTree exposing (..)
 import Music.Notation exposing (..)
 import Music.Accidentals exposing (..)
@@ -72,17 +76,24 @@ type alias TranspositionState =
 -- Exposed API
 
 
-{-| work out the distance between the keys (target - source) measured in semitones.
-   Keys must be in compatible modes
+{-| The default Key - C Major.
+-}
+defaultKey : ModifiedKeySignature
+defaultKey =
+    ( { pitchClass = C, accidental = Nothing, mode = Major }, [] )
+
+
+{-| Calculate the distance between the keys (target - source) measured in semitones.
+   Keys must be in compatible modes.
 -}
 keyDistance : ModifiedKeySignature -> ModifiedKeySignature -> Result String Int
 keyDistance targetmks srcmks =
     let
         target =
-            fst targetmks
+            first targetmks
 
         src =
-            fst srcmks
+            first srcmks
     in
         if (target.mode /= src.mode) then
             Err "incompatible modes"
@@ -90,7 +101,7 @@ keyDistance targetmks srcmks =
             Ok (transpositionDistance ( target.pitchClass, target.accidental ) ( src.pitchClass, src.accidental ))
 
 
-{-| transpose a note from its source key to its target
+{-| Transpose a note from its source key to its target.
 -}
 transposeNote : ModifiedKeySignature -> ModifiedKeySignature -> AbcNote -> Result String AbcNote
 transposeNote targetmks srcKey note =
@@ -110,7 +121,7 @@ transposeNote targetmks srcKey note =
                         , sourceBarAccidentals = Music.Accidentals.empty
                         , targetmks = targetmks
                         , targetKeySet = modifiedKeySet targetmks
-                        , targetScale = diatonicScale (fst targetmks)
+                        , targetScale = diatonicScale (first targetmks)
                         , targetBarAccidentals = Music.Accidentals.empty
                         }
 
@@ -120,15 +131,15 @@ transposeNote targetmks srcKey note =
                     Ok transposedNote
 
 
-{-| transpose a tune to the target key
+{-| Transpose a tune to the target key.
 -}
 transposeTo : ModifiedKeySignature -> AbcTune -> Result String AbcTune
 transposeTo targetmks t =
     let
-        -- get the key signature if there is one, default to C Major
+        -- get the key signature from the tune if there is one, default to C Major
         mks =
             getKeySig t
-                |> withDefault ( { pitchClass = C, accidental = Nothing, mode = Major }, [] )
+                |> withDefault defaultKey
 
         -- find the distance between the keys
         rdistance =
@@ -150,7 +161,7 @@ transposeTo targetmks t =
                             , sourceBarAccidentals = Music.Accidentals.empty
                             , targetmks = targetmks
                             , targetKeySet = modifiedKeySet targetmks
-                            , targetScale = diatonicScale (fst targetmks)
+                            , targetScale = diatonicScale (first targetmks)
                             , targetBarAccidentals = Music.Accidentals.empty
                             }
                     in
@@ -215,7 +226,7 @@ processHeader state h =
                     , sourceBarAccidentals = Music.Accidentals.empty
                     , targetmks = newmks
                     , targetKeySet = modifiedKeySet newmks
-                    , targetScale = diatonicScale (fst newmks)
+                    , targetScale = diatonicScale (first newmks)
                     , targetBarAccidentals = Music.Accidentals.empty
                   }
                 )
@@ -238,10 +249,10 @@ transposeBodyPart state bp =
         -- transpose any Key header found inline
         BodyInfo h ->
             let
-                ( h1, state ) =
+                ( h1, state1 ) =
                     processHeader state h
             in
-                ( BodyInfo h1, state )
+                ( BodyInfo h1, state1 )
 
 
 transposeMusic : TranspositionState -> Music -> ( Music, TranspositionState )
@@ -296,10 +307,10 @@ transposeMusic state m =
         -- an inline header
         Inline h ->
             let
-                ( h1, state ) =
+                ( h1, state1 ) =
                     processHeader state h
             in
-                ( Inline h1, state )
+                ( Inline h1, state1 )
 
         _ ->
             ( m, state )
@@ -378,7 +389,7 @@ transposeNoteBy state note =
 
         -- we must do the lookup of the source accidental in this order - local bar overrides key
         implicitSourceAccidental =
-            oneOf [ inSourceBarAccidental, inSourceKeyAccidental ]
+            firstOneOf [ inSourceBarAccidental, inSourceKeyAccidental ]
 
         explicitSourceNote =
             if (isJust note.accidental) then
@@ -393,7 +404,7 @@ transposeNoteBy state note =
             noteIndex srcNum (state.keyDistance)
 
         ka =
-            pitchFromInt (fst state.targetmks) targetNum
+            pitchFromInt (first state.targetmks) targetNum
 
         ( pc, acc ) =
             sharpenFlatEnharmonic ka
@@ -656,7 +667,7 @@ comparableNoteNumbers : List ( String, Int )
 comparableNoteNumbers =
     let
         f notePair =
-            ( comparableNote (fst notePair), (snd notePair) )
+            ( comparableNote (first notePair), (second notePair) )
     in
         List.map f noteNumbers
 
@@ -770,3 +781,10 @@ replaceKeyHeader newmks hs =
             List.filter f hs
     in
         newhs ++ [ Key newmks ]
+
+
+{-| Pick the first `Maybe` that actually has a value
+-}
+firstOneOf : List (Maybe a) -> Maybe a
+firstOneOf =
+    List.foldr or Nothing

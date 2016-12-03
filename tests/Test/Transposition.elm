@@ -11,6 +11,13 @@ import Ratio exposing (Rational, over, fromInt)
 import Debug exposing (..)
 
 
+(>>=) : Result x a -> (a -> Result x b) -> Result x b
+(>>=) =
+    flip andThen
+
+
+
+-- infixl 1 >>=
 {- assert the transposed parsed input equals the target -}
 
 
@@ -18,8 +25,8 @@ assertTranspositionMatches : String -> ModifiedKeySignature -> String -> Expecta
 assertTranspositionMatches s targetks target =
     let
         transposedResult =
-            formatError (\x -> "parse error: " ++ toString x) (parse s)
-                `andThen` (\tune -> transposeTo targetks tune)
+            mapError (\x -> "parse error: " ++ toString x) (parse s)
+                >>= (\tune -> transposeTo targetks tune)
     in
         case transposedResult of
             Ok res ->

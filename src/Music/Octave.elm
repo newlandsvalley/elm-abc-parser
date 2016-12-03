@@ -7,8 +7,6 @@ module Music.Octave
 {-| Move a tune up or down an octave
 
 
-# Definition
-
 # Functions
 @docs up
     , down
@@ -21,14 +19,14 @@ import Abc.ParseTree exposing (..)
 -- Exposed API
 
 
-{-| Move the tune up an octave
+{-| Move the tune up an octave.
 -}
 up : AbcTune -> AbcTune
 up t =
     moveTune 1 t
 
 
-{-| Move the tune down octave
+{-| Move the tune down octave.
 -}
 down : AbcTune -> AbcTune
 down t =

@@ -9,10 +9,10 @@ module Abc.Canonical
 
 {-| Module for converting an ABC Tune parse tree to a canonical ABC string,
 
-   # Definition
 
-   # Functions
-   @docs fromTune, fromResult, abcNote, abcChord, tuplet
+
+# Functions
+@docs fromTune, fromResult, abcNote, abcChord, tuplet
 
 -}
 
@@ -20,6 +20,7 @@ import Abc.ParseTree exposing (..)
 import Ratio exposing (Rational, numerator, denominator)
 import Maybe exposing (withDefault)
 import String exposing (fromChar, fromList, repeat, trimRight, toLower)
+import Tuple exposing (first, second)
 
 
 enquote : String -> String
@@ -123,7 +124,8 @@ headerAccidental a =
         _ ->
             ""
 
-{- pretty print a tuplet
+
+{-| Pretty-print a tuplet.
 -}
 tuplet : TupletSignature -> String
 tuplet t =
@@ -256,7 +258,7 @@ pitch octave p =
         toLower (toString p)
 
 
-{-| pretty-print a note
+{-| Pretty-print a note.
 -}
 abcNote : AbcNote -> String
 abcNote a =
@@ -279,7 +281,8 @@ abcNote a =
             ++ duration a.duration
             ++ tie
 
-{-| pretty-print a chord
+
+{-| Pretty-print a chord.
 -}
 abcChord : AbcChord -> String
 abcChord a =
@@ -377,10 +380,6 @@ music m =
 
         Continuation ->
             "\\"
-
-
-
--- _ -> ""
 
 
 header : Header -> String
@@ -511,17 +510,17 @@ tuneBody b =
 
 
 
--- Exported Functions
+-- Main Exported Functions
 
 
-{-| translate an ABC Tune parse tree to a canonical ABC String
+{-| Translate an ABC Tune parse tree to a canonical ABC String.
 -}
 fromTune : AbcTune -> String
 fromTune t =
-    tuneHeaders (fst t) ++ tuneBody (snd t)
+    tuneHeaders (first t) ++ tuneBody (second t)
 
 
-{-| translate a parse Result containing an ABC Tune parse tree to a Result containing a canonical ABC String
+{-| Translate a parse Result containing an ABC Tune parse tree to a Result containing a canonical ABC String.
 -}
 fromResult : Result String AbcTune -> Result String String
 fromResult r =

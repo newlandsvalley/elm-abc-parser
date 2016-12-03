@@ -14,6 +14,7 @@ module Music.Notation
         , inKeySet
         , getHeaderMap
         , getKeySig
+        , getTempoSig
         , getTitle
         , diatonicScale
         , inScale
@@ -30,22 +31,24 @@ module Music.Notation
         , normaliseModalKey
         )
 
-{-| Helper functions for making more musical sense of the parse tree
+{-| Helper functions for making more musical sense of the parse tree.
 
-# Definition
 
 # Data Types
 @docs MidiPitch, MidiTick, AbcTempo, NoteTime, DiatonicScale, HeaderMap
 
-# Functions
+# Constants
 @docs notesInChromaticScale
     , standardMidiTick
-    , keySet
+
+# Functions
+@docs  keySet
     , modifiedKeySet
     , getKeySet
     , inKeySet
     , getHeaderMap
     , getKeySig
+    , getTempoSig
     , getTitle
     , diatonicScale
     , inScale
@@ -65,24 +68,25 @@ module Music.Notation
 
 import List.Extra exposing (getAt, splitAt, elemIndex, tails)
 import List exposing (member, isEmpty)
-import Maybe exposing (withDefault, oneOf)
-import Maybe.Extra exposing (join, isJust)
+import Maybe exposing (withDefault)
+import Maybe.Extra exposing (join, isJust, or)
 import String exposing (contains, endsWith, fromChar)
 import Dict exposing (Dict, fromList, get)
+import Tuple exposing (first, second)
 import Abc.ParseTree exposing (..)
 import Ratio exposing (..)
 import Music.Accidentals exposing (..)
 import Debug exposing (..)
 
 
-{-| a diatonic scale presented as a list of notes in the scale
+{-| A diatonic scale presented as a list of notes in the scale.
 -}
 type alias DiatonicScale =
     List KeyAccidental
 
 
 
-{- a chromatic (11-note) scale -}
+{- A chromatic (12-note) scale -}
 
 
 type alias ChromaticScale =
@@ -93,25 +97,30 @@ type alias Intervals =
     List Int
 
 
-{-| the pitch of a note expressed as a MIDI interval
+{-| The pitch of a note expressed as a MIDI interval.
 -}
 type alias MidiPitch =
     Int
 
 
-{-| a MIDI tick - used to give a note duration
+{-| A MIDI tick - used to give a note duration.
 -}
 type alias MidiTick =
     Int
 
 
-{-| the time taken when a note is played before the next note
+{-| The time taken when a note is played before the next note.
 -}
 type alias NoteTime =
     Float
 
 
-{-| ABC header information defining tempo
+{-| The tempo when the tune is being played. This is usually represented
+as (for example) 1/4 = 120 - i.e. 120 querter notes per minute.
+
+* tempoNoteLength - the note length of a tempo definition
+* bpm - the beats per minute of a tempo Definition
+* unitNoteLength - the length of a 'unit note' in the ABC definition
 -}
 type alias AbcTempo =
     { tempoNoteLength : Rational
@@ -120,8 +129,8 @@ type alias AbcTempo =
     }
 
 
-{-| reconstitute the map of Header characters to the headers themselves
-    taking the first instance of any header in each case
+{-| A representation of the ABC headers as a Dictionary, taking the first definition
+of any header if multiple definitions are present in the ABC
 -}
 type alias HeaderMap =
     Dict Char Header
@@ -131,21 +140,21 @@ type alias HeaderMap =
 -- EXPORTED FUNCTIONS
 
 
-{-| a standard MIDI tick - we'll use 1/4 note = 480 ticks
+{-| A standard MIDI tick - we use 1/4 note = 480 ticks.
 -}
 standardMidiTick : MidiTick
 standardMidiTick =
     480
 
 
-{-| there are 12 notes in a chromatic scale
+{-| Number of notes in a chromatic scale (i.e. 12)
 -}
 notesInChromaticScale : Int
 notesInChromaticScale =
     12
 
 
-{-| return the set of keys (pitch classes with accidental) that comprise the key signature
+{-| The set of keys (pitch classes with accidental) that comprise the key signature.
 -}
 keySet : KeySignature -> KeySet
 keySet ks =
@@ -153,7 +162,7 @@ keySet ks =
         |> List.filter accidentalKey
 
 
-{-| return the set of keys (pitch classes with accidental) that comprise a modified key signature
+{-| The set of keys (pitch classes with accidental) that comprise a modified key signature
 -}
 modifiedKeySet : ModifiedKeySignature -> KeySet
 modifiedKeySet ksm =
@@ -170,7 +179,7 @@ modifiedKeySet ksm =
             List.foldr modifyKeySet ks mods
 
 
-{-| get set of key accidentals from the (possibly modified) key (if there is one in the tune)
+{-| Get the set of key accidentals from the (possibly modified) key (if there is one in the tune).
 -}
 getKeySet : AbcTune -> KeySet
 getKeySet t =
@@ -186,14 +195,14 @@ getKeySet t =
                 []
 
 
-{-| return True if the KeyAccidental is in the KeySet
+{-| Is the KeyAccidental is in the KeySet?
 -}
 inKeySet : KeyAccidental -> KeySet -> Bool
 inKeySet ka ks =
     List.member ka ks
 
 
-{-| return a map of header code to Header for the first instance of each Header
+{-| A map (Header code => Header) for the first instance of each Header
 -}
 getHeaderMap : AbcTune -> HeaderMap
 getHeaderMap t =
@@ -292,14 +301,14 @@ getHeaderMap t =
                     ( 'u', h )
 
         annotatedHeaders =
-            fst t
+            first t
                 |> List.reverse
                 |> List.map f
     in
         Dict.fromList annotatedHeaders
 
 
-{-| get the key signature (if any) from the tune
+{-| Get the key signature (if any) from the tune.
 -}
 getKeySig : AbcTune -> Maybe ModifiedKeySignature
 getKeySig t =
@@ -320,12 +329,33 @@ getKeySig t =
                 Nothing
 
 
+{-| Get the tempo signature (if any) from the tune.
+-}
+getTempoSig : AbcTune -> Maybe TempoSignature
+getTempoSig t =
+    let
+        headerMap =
+            getHeaderMap t
+    in
+        case Dict.get 'Q' headerMap of
+            Just qh ->
+                case qh of
+                    Tempo ts ->
+                        Just ts
+
+                    _ ->
+                        Nothing
+
+            _ ->
+                Nothing
+
+
 
 {- old implementation
    getKeySig t =
        let
            headers =
-               fst t
+               first t
 
            f h =
                case h of
@@ -344,7 +374,7 @@ getKeySig t =
 -}
 
 
-{-| get the first Title (if any) from the tune
+{-| Get the first Title (if any) from the tune.
 -}
 getTitle : AbcTune -> Maybe String
 getTitle t =
@@ -370,7 +400,7 @@ getTitle t =
    getTitle t =
        let
            headers =
-               fst t
+               first t
 
            f h =
                case h of
@@ -389,7 +419,8 @@ getTitle t =
 -}
 
 
-{-| return the set of keys (pitch classes and accidental) that comprise a diatonic scale
+{-| The set of keys (pitch classes and accidental) that comprise a diatonic scale
+    in the given key signature.
 -}
 diatonicScale : KeySignature -> DiatonicScale
 diatonicScale ks =
@@ -416,14 +447,14 @@ diatonicScale ks =
                 modalScale target ks.mode
 
 
-{-| return True if the KeyAccidental is in the (diatonic) scale
+{-| Is the KeyAccidental in the diatonic scale?
 -}
 inScale : KeyAccidental -> DiatonicScale -> Bool
 inScale ka s =
     List.member ka s
 
 
-{-| return True if the key signature is a sharp key or a simple C Major key
+{-| Is the key signature a sharp key or else a simple C Major key?
 -}
 isCOrSharpKey : KeySignature -> Bool
 isCOrSharpKey ksig =
@@ -439,8 +470,9 @@ isCOrSharpKey ksig =
         sampleAcc == Sharp
 
 
-{-| return an accidental if it is implicitly there in the (modified) key signature
-    attached to the pitch class of the note
+{-| Return an accidental if it is implicitly there in the (modified) key signature
+    attached to the pitch class of the note. In ABC, notes generally inherit
+    their (sharp, flat or natural) accidental nature from the key signature.
 -}
 accidentalImplicitInKey : PitchClass -> ModifiedKeySignature -> Maybe Accidental
 accidentalImplicitInKey pc mks =
@@ -467,7 +499,7 @@ modifyKeySet target ks =
 
         -- filter out the given pitch class of the incoming key accidental
         f key =
-            (fst key /= pc)
+            (first key /= pc)
 
         newks =
             List.filter f ks
@@ -480,29 +512,34 @@ modifyKeySet target ks =
             target :: ks
 
 
-{-| the amount by which you increase the duration of a (multiply) dotted note
-   i.e. duration of a note dotted by x is multiplied by:
-      1 + dotFactor x
-   and of one symmetrically reduced is
-      1 - dotfactor x
+{-| The amount by which you increase or decrease the duration of a (possibly multiply) dotted note.
+    For example A > B increases the duration of A and proportionally reduces that of B.
+    A << B decreases the duration of A and increases that of B by an even greater amount.  This function
+    calculates the increase or decrease.  The new duration will be given by:
+
+    duration * (1 +/- dotfactor i)
+
+*  i is the number of 'dot' indicators (< or >)
+
 -}
 dotFactor : Int -> Rational
 dotFactor i =
     case i of
         1 ->
-            1 `over` 2
+            over 1 2
 
         2 ->
-            3 `over` 4
+            over 3 4
 
         3 ->
-            7 `over` 8
+            over 7 8
 
         _ ->
-            0 `over` 1
+            over 0 1
 
 
-{-| find a real world note duration by translating an ABC note duration using a tempo and unit note length
+{-| Find a real world note duration by translating an ABC note duration using
+   the tune's tempo and unit note length.
 -}
 noteDuration : AbcTempo -> Rational -> NoteTime
 noteDuration t n =
@@ -510,7 +547,8 @@ noteDuration t n =
         / ((Ratio.toFloat t.tempoNoteLength) * (Basics.toFloat t.bpm))
 
 
-{-| find a real world duration of a note in a chord by translating an ABC note duration together with a chord duration using a tempo and unit note length
+{-| Find a real world duration of a note in a chord by translating an ABC note duration together with
+  the chord duration using the tune's tempo and unit note length.
 -}
 chordalNoteDuration : AbcTempo -> Rational -> Rational -> NoteTime
 chordalNoteDuration t note chord =
@@ -522,9 +560,9 @@ chordalNoteDuration t note chord =
 -- MIDI support
 
 
-{-| Calculate a MIDI note duration from the note length
+{-| Calculate a MIDI note duration from the note length.
 
-    Assume a standard unit note length of 1/4 and a standard number of ticks per unit (1/4) note of 480
+    Assume a standard unit note length of 1/4 and a standard number of ticks per unit (1/4) note of 480.
 -}
 noteTicks : Rational -> MidiTick
 noteTicks n =
@@ -535,7 +573,7 @@ noteTicks n =
 -- // is used for integer division in elm
 
 
-{-| find a MIDI duration of a note within a chord in standard ticks (as above)
+{-| Find the MIDI duration of a note within a chord in standard ticks
     (1/4 note == 480 ticks)
 -}
 chordalNoteTicks : Rational -> Rational -> MidiTick
@@ -551,11 +589,12 @@ chordalNoteTicks note chord =
 -- // is used for integer division in elm
 
 
-{-| convert an ABC note pitch to a MIDI pitch
-   AbcNote - the note in question
-   ModifiedKeySignature - the key signature (possibly modified by extra accidentals)
-   Accidentals - any notes in this bar which have previously been set explicitly to an accidental which are thus inherited by this note
-   MidiPitch - the resulting pitch of the MIDI note
+{-| Convert an ABC note pitch to a MIDI pitch.
+
+*  AbcNote - the note in question
+*  ModifiedKeySignature - the key signature (possibly modified by extra accidentals)
+*  Accidentals - any notes in this bar which have previously been set explicitly to an accidental which are thus inherited by this note
+*  MidiPitch - the resulting pitch of the MIDI note
 
 -}
 toMidiPitch : AbcNote -> ModifiedKeySignature -> Accidentals -> MidiPitch
@@ -563,18 +602,22 @@ toMidiPitch n mks barAccidentals =
     (n.octave * notesInChromaticScale) + midiPitchOffset n mks barAccidentals
 
 
-{-| the MIDI tempo is measured in microseconds per beat
 
-    algorithm is:
+{-
+   midiTempo algorithm is:
 
-    t.bpm beats occupy 1 minute or 60 * 10^16 μsec
-    1 bpm beat occupies 60 * 10^16/t.bpm μsec
+   t.bpm beats occupy 1 minute or 60 * 10^16 μsec
+   1 bpm beat occupies 60 * 10^16/t.bpm μsec
 
-    but we use a standard beat of 1 unit when writing a note, whereas the bpm measures a tempo note length of
-    t.unitNoteLength/t.tempoNoteLength
-    i.e.
-    1 whole note beat occupies 60 * 10^16/t.bpm * t.unl/t.tnl μsec
+   but we use a standard beat of 1 unit when writing a note, whereas the bpm measures a tempo note length of
+   t.unitNoteLength/t.tempoNoteLength
+   i.e.
+   1 whole note beat occupies 60 * 10^16/t.bpm * t.unl/t.tnl μsec
 
+-}
+
+
+{-| The MIDI tempo measured in microseconds per beat.
 -}
 midiTempo : AbcTempo -> Int
 midiTempo t =
@@ -582,10 +625,10 @@ midiTempo t =
         relativeNoteLength =
             divide t.unitNoteLength t.tempoNoteLength
     in
-        round ((60.0 * 1000000 * Basics.toFloat (numerator relativeNoteLength)) / (Basics.toFloat t.bpm * Basics.toFloat (denominator relativeNoteLength)))
+        Basics.round ((60.0 * 1000000 * Basics.toFloat (numerator relativeNoteLength)) / (Basics.toFloat t.bpm * Basics.toFloat (denominator relativeNoteLength)))
 
 
-{-| transpose a key signature by a given distance
+{-| Transpose a key signature by a given distance.
 -}
 transposeKeySignatureBy : Int -> ModifiedKeySignature -> ModifiedKeySignature
 transposeKeySignatureBy i mks =
@@ -742,7 +785,7 @@ equivalentEnharmonic k =
 
 sharpScaleEquivalent : KeyAccidental -> KeyAccidental
 sharpScaleEquivalent ka =
-    case (snd ka) of
+    case (second ka) of
         Flat ->
             let
                 index =
@@ -839,7 +882,7 @@ rotateFrom target scale =
         listPair =
             splitAt index scale
     in
-        List.append (snd listPair) (fst listPair)
+        List.append (second listPair) (first listPair)
 
 
 
@@ -852,7 +895,7 @@ rotateLeftBy index ls =
         listPair =
             splitAt index ls
     in
-        List.append (snd listPair) (fst listPair)
+        List.append (second listPair) (first listPair)
 
 
 
@@ -989,12 +1032,12 @@ normaliseModalKey ks =
             lookUpScale scale majorKeyIndex
 
         targetAccidental =
-            accToMacc (snd majorKeyAcc)
+            accToMacc (second majorKeyAcc)
     in
         if (0 == distance) then
             ks
         else
-            { pitchClass = fst majorKeyAcc
+            { pitchClass = first majorKeyAcc
             , accidental = targetAccidental
             , mode = Major
             }
@@ -1120,7 +1163,7 @@ midiPitchOffset n mks barAccidentals =
         -- look first for an explicit note accidental, then for an explicit for the same note that occurred earlier in the bar and
         -- finally look for an implicit accidental attached to this key signature
         maybeAccidental =
-            oneOf [ n.accidental, inBarAccidental, inKeyAccidental ]
+            firstOneOf [ n.accidental, inBarAccidental, inKeyAccidental ]
 
         accidental =
             accidentalPattern maybeAccidental
@@ -1189,3 +1232,10 @@ transposeKeyAccidentalBy i ka =
     in
         getAt (index + modifier + i) scale
             |> withDefault ( C, Natural )
+
+
+{-| Pick the first `Maybe` that actually has a value
+-}
+firstOneOf : List (Maybe a) -> Maybe a
+firstOneOf =
+    List.foldr or Nothing
