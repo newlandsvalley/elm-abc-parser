@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "summary": "library for parsing ABC documents",
     "repository": "https://github.com/newlandsvalley/elm-abc-parser.git",
     "license": "BSD3",
@@ -16,13 +16,12 @@
         "Music.Tempo",
         "Music.Transposition"
     ],
-    "native-modules": false,
     "dependencies": {
-        "elm-lang/core": "5.0.0 <= v < 6.0.0",
         "Bogdanp/elm-combine": "3.1.0 <= v < 4.0.0",
-        "elm-community/maybe-extra": "3.0.0 <= v < 4.0.0",
         "elm-community/list-extra": "4.0.0 <= v < 5.0.0",
-        "elm-community/ratio": "1.1.0 <= v < 2.0.0"
+        "elm-community/maybe-extra": "3.0.0 <= v < 4.0.0",
+        "elm-community/ratio": "1.1.0 <= v < 2.0.0",
+        "elm-lang/core": "5.0.0 <= v < 6.0.0"
     },
     "elm-version": "0.18.0 <= v < 0.19.0"
 }
