@@ -3,7 +3,7 @@ module Test.Tempo exposing (tests)
 import Test exposing (..)
 import Expect exposing (..)
 import Music.Tempo exposing (..)
-import Test.Utils exposing (assertMoveMatches)
+import Test.Utils exposing (assertMoveMatches, assertIntFuncMatches)
 import Result exposing (..)
 import Debug exposing (..)
 
@@ -11,25 +11,39 @@ import Debug exposing (..)
 tests : Test
 tests =
     describe "tempo change"
-        [ test "alter tempo of existing header" <|
+        [ test "get the tempo from header" <|
+            \() ->
+                (assertIntFuncMatches
+                    fullHeaderHigh
+                    getBpm
+                    132
+                )
+        , test "get the default tempo when there's no header" <|
+            \() ->
+                (assertIntFuncMatches
+                    noHeader
+                    getBpm
+                    120
+                )
+        , test "alter tempo of existing header" <|
             \() ->
                 (assertMoveMatches
                     fullHeaderMed
-                    (changeBpm 132)
+                    (setBpm 132)
                     fullHeaderHigh
                 )
         , test "new tempo from default of no headers" <|
             \() ->
                 (assertMoveMatches
                     noHeader
-                    (changeBpm 144)
+                    (setBpm 144)
                     justTempoHeader
                 )
         , test "new tempo from default of only Key header" <|
             \() ->
                 (assertMoveMatches
                     onlyKeyHeader
-                    (changeBpm 84)
+                    (setBpm 84)
                     justTempoAndKeyHeader
                 )
         ]
