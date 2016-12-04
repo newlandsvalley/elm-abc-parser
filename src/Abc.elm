@@ -6,8 +6,8 @@ module Abc
         , ParseError
         )
 
-{-| Library for parsing ABC transcriptions using parser combinators
-     see http://abcnotation.com/wiki/abc:standard:v2.1
+{-| Library for parsing tunes written in ABC notation -
+     see: http://abcnotation.com/wiki/abc:standard:v2.1
 
 # Functions
 @docs parse, parseKeySignature, parseError

@@ -5,7 +5,7 @@ module Music.Tempo
         , setBpm
         )
 
-{-| Tune tempo changes
+{-| Get or set the tempo of a tune.
 
 You can change the tempo of an ABC tune by altering its beats per minute (bpm).
 For example, to set the tempo of a parsed tune to 80 bpm you can say:
@@ -19,7 +19,8 @@ For example, to set the tempo of a parsed tune to 80 bpm you can say:
 
 
 # Functions
-@docs changeBpm
+@docs getBpm
+    , setBpm
 
 
 -}
@@ -46,7 +47,7 @@ defaultTempo =
 
 
 {-| Get the tempo of the tune in beats per minute from the tunes header
-    (if it exists) or the default of 120 if it does not
+    (if it exists) or the default of 120 if it does not.
 -}
 getBpm : AbcTune -> Int
 getBpm tune =
