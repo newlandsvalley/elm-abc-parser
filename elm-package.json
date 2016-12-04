@@ -10,6 +10,7 @@
         "Abc",
         "Abc.Canonical",
         "Abc.ParseTree",
+        "Music.Accidentals",
         "Music.Notation",
         "Music.Octave",
         "Music.Tempo",

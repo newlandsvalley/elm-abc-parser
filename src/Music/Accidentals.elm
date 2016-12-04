@@ -8,11 +8,23 @@ module Music.Accidentals
         , member
         )
 
-{-| private module to provide a type-safe interface into handling
+{-| A type-safe interface into handling
     sets of Key Accidentals - i.e. pitch classes associated
     with an explicit sharp, flat or natural modifier.
 
-    (as of elm 0.16, type-safety of Dicts is compromised)
+    (improves type-safety of Dicts with user-defined types)
+
+# Types
+@docs Accidentals
+
+
+# Functions
+@docs empty
+    , add
+    , fromKeySet
+    , lookup
+    , member
+
 -}
 
 import Abc.ParseTree exposing (AbcNote, PitchClass(..), Accidental(..), KeyAccidental, KeySet)
